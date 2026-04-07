@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../game/managers/save_manager.dart';
 import '../../models/aircraft_data.dart';
+import '../widgets/ad_banner_widget.dart';
 import '../widgets/aircraft_card_widget.dart';
 
 class HangarScreen extends StatefulWidget {
@@ -41,6 +42,7 @@ class _HangarScreenState extends State<HangarScreen> {
         children: [
           _buildCoinRow(),
           const SizedBox(height: 8),
+          const AdBannerWidget(),
           Expanded(
             child: ListView.separated(
               padding: const EdgeInsets.all(16),

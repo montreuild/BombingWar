@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../game/managers/save_manager.dart';
 import '../../models/aircraft_data.dart';
+import '../widgets/ad_banner_widget.dart';
 import 'hangar_screen.dart';
 import 'game_screen.dart';
 import 'mission_briefing_screen.dart';
@@ -35,6 +36,7 @@ class MainMenuScreen extends StatelessWidget {
               _buildButtons(context),
               const Spacer(),
               _buildVersion(),
+              const AdBannerWidget(),
             ],
           ),
         ),
