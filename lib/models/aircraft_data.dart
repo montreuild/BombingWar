@@ -32,38 +32,38 @@ class AircraftData {
 
   static const AircraftData interceptor = AircraftData(
     id: 'interceptor',
-    name: 'Interceptor',
+    name: 'Faucon F-17',
     speed: GameConfig.interceptorSpeed,
     health: GameConfig.interceptorHealth,
     weapons: [WeaponData.heatMissile, WeaponData.machineGun],
     specialAbility: SpecialAbility.barrelRoll,
     unlockLevel: 0,
     unlockCost: 0,
-    description: 'Fast fighter. Barrel roll dodges incoming missiles.',
+    description: 'Chasseur rapide de l\'Alliance. Vrille d\'esquive des missiles ennemis.',
   );
 
   static const AircraftData heavyBomber = AircraftData(
     id: 'heavy_bomber',
-    name: 'Heavy Bomber',
+    name: 'Tonnerre A-6',
     speed: GameConfig.heavyBomberSpeed,
     health: GameConfig.heavyBomberHealth,
     weapons: [WeaponData.carpetBomb],
     specialAbility: SpecialAbility.armor,
     unlockLevel: GameConfig.heavyBomberUnlockLevel,
     unlockCost: 500,
-    description: 'Slow but armored. Carpet bombs devastate ground targets.',
+    description: 'Bombardier blindé. Les frappes en tapis rasent les positions au sol.',
   );
 
   static const AircraftData stealthX26 = AircraftData(
     id: 'stealth_x26',
-    name: 'Stealth X-26',
+    name: 'Fantôme SR-X',
     speed: GameConfig.stealthSpeed,
     health: GameConfig.stealthHealth,
     weapons: [WeaponData.penetratorBomb, WeaponData.machineGun],
     specialAbility: SpecialAbility.cloak,
     unlockLevel: GameConfig.stealthUnlockLevel,
     unlockCost: 1500,
-    description: 'Only aircraft able to destroy Underground Factories. Cloak hides from AA.',
+    description: 'Seul appareil capable de détruire les Sites Fortifiés. Furtivité radar active.',
   );
 
   static const List<AircraftData> all = [interceptor, heavyBomber, stealthX26];

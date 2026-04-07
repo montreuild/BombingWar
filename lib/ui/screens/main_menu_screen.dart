@@ -4,6 +4,7 @@ import '../../game/managers/save_manager.dart';
 import '../../models/aircraft_data.dart';
 import 'hangar_screen.dart';
 import 'game_screen.dart';
+import 'mission_briefing_screen.dart';
 
 class MainMenuScreen extends StatelessWidget {
   const MainMenuScreen({super.key, required this.saveManager});
@@ -58,13 +59,26 @@ class MainMenuScreen extends StatelessWidget {
   }
 
   Widget _buildSubtitle() {
-    return Text(
-      'AERIAL COMBAT SQUADRON',
-      style: GoogleFonts.orbitron(
-        fontSize: 12,
-        color: Colors.white38,
-        letterSpacing: 6,
-      ),
+    return Column(
+      children: [
+        Text(
+          'OPÉRATION AURORE',
+          style: GoogleFonts.orbitron(
+            fontSize: 12,
+            color: const Color(0xFFFF8844),
+            letterSpacing: 6,
+          ),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          'ALLIANCE OCCIDENTALE  ✦  CONFLIT DU GOLFE',
+          style: GoogleFonts.orbitron(
+            fontSize: 9,
+            color: Colors.white24,
+            letterSpacing: 2,
+          ),
+        ),
+      ],
     );
   }
 
@@ -120,7 +134,7 @@ class MainMenuScreen extends StatelessWidget {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => GameScreen(
+        builder: (_) => MissionBriefingScreen(
           saveManager: saveManager,
           selectedAircraft: aircraft,
         ),
@@ -142,9 +156,9 @@ class MainMenuScreen extends StatelessWidget {
           children: [
             _leaderboardRow(1, 'YOU', saveManager.progress.highScore),
             const Divider(color: Colors.white24),
-            _leaderboardRow(2, 'GHOST', 8500),
-            _leaderboardRow(3, 'VIPER', 7200),
-            _leaderboardRow(4, 'EAGLE', 5100),
+            _leaderboardRow(2, 'FANTÔME', 8500),
+            _leaderboardRow(3, 'VIPÈRE', 7200),
+            _leaderboardRow(4, 'FAUCON', 5100),
           ],
         ),
         actions: [

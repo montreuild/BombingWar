@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../game/managers/save_manager.dart';
 import '../../models/aircraft_data.dart';
 import 'game_screen.dart';
+import 'mission_briefing_screen.dart';
 
 class LevelCompleteScreen extends StatelessWidget {
   const LevelCompleteScreen({
@@ -66,12 +67,12 @@ class LevelCompleteScreen extends StatelessWidget {
                   const SizedBox(height: 48),
                   _buildButton(
                     context,
-                    'NEXT MISSION',
+                    'PROCHAINE MISSION',
                     const Color(0xFF44FF88),
                     () => Navigator.pushReplacement(
                       context,
                       MaterialPageRoute(
-                        builder: (_) => GameScreen(
+                        builder: (_) => MissionBriefingScreen(
                           saveManager: saveManager,
                           selectedAircraft: selectedAircraft,
                         ),
