@@ -80,7 +80,7 @@ class GameConfig {
   static const int bunkerScore = 100;
   static const double bunkerSize = 36.0;
   static const double bunkerOpenDuration = 1.5;
-  static const double bunkerSalvoCount = 3.0;
+  static const int bunkerSalvoCount = 3;
   static const double bunkerSalvoCooldown = 5.0;
   static const double bunkerMissileDamage = 45.0;
 
