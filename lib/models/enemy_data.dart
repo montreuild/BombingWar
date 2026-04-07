@@ -5,6 +5,7 @@ enum EnemyType { infantry, rpgUnit, bunker, factory }
 class EnemyData {
   const EnemyData({
     required this.type,
+    required this.name,
     required this.health,
     required this.speed,
     required this.damage,
@@ -13,6 +14,7 @@ class EnemyData {
   });
 
   final EnemyType type;
+  final String name;
   final double health;
   final double speed;
   final double damage;
@@ -25,6 +27,7 @@ class EnemyData {
 
   static const EnemyData infantry = EnemyData(
     type: EnemyType.infantry,
+    name: 'Garde du Croissant',
     health: GameConfig.infantryHealth,
     speed: GameConfig.infantrySpeed,
     damage: GameConfig.infantryDamage,
@@ -34,6 +37,7 @@ class EnemyData {
 
   static const EnemyData rpgUnit = EnemyData(
     type: EnemyType.rpgUnit,
+    name: 'Lanceur Shahine',
     health: GameConfig.rpgHealth,
     speed: GameConfig.rpgSpeed,
     damage: GameConfig.rpgDamage,
@@ -43,6 +47,7 @@ class EnemyData {
 
   static const EnemyData bunker = EnemyData(
     type: EnemyType.bunker,
+    name: 'Bunker Blindé',
     health: GameConfig.bunkerHealth,
     speed: 0.0,
     damage: GameConfig.bunkerMissileDamage,
@@ -52,6 +57,7 @@ class EnemyData {
 
   static const EnemyData factory = EnemyData(
     type: EnemyType.factory,
+    name: 'Site Fortifié',
     health: GameConfig.factoryHealth,
     speed: 0.0,
     damage: 0.0,
