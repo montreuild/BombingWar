@@ -62,11 +62,11 @@ class MainMenuScreen extends StatelessWidget {
     return Column(
       children: [
         Text(
-          'OPÉRATION AURORE',
+          'OPÉRATION : EPIC COLLAPSE',
           style: GoogleFonts.orbitron(
-            fontSize: 12,
+            fontSize: 11,
             color: const Color(0xFFFF8844),
-            letterSpacing: 6,
+            letterSpacing: 4,
           ),
         ),
         const SizedBox(height: 6),

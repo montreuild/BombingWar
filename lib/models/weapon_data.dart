@@ -24,7 +24,7 @@ class WeaponData {
   // ---------------------------------------------------------------------------
 
   static const WeaponData machineGun = WeaponData(
-    name: 'Canon 20mm',
+    name: 'Machine Gun',
     damage: GameConfig.bulletDamage,
     range: GameConfig.bulletRange,
     cooldown: GameConfig.bulletCooldown,
@@ -32,7 +32,7 @@ class WeaponData {
   );
 
   static const WeaponData heatMissile = WeaponData(
-    name: 'Missile Python-5',
+    name: 'Heat Missile',
     damage: GameConfig.missileDamage,
     range: GameConfig.missileRange,
     cooldown: GameConfig.missileCooldown,
@@ -40,7 +40,7 @@ class WeaponData {
   );
 
   static const WeaponData carpetBomb = WeaponData(
-    name: 'Bombe Mk.82',
+    name: 'Carpet Bomb',
     damage: GameConfig.bombDamage,
     range: GameConfig.worldHeight,
     cooldown: GameConfig.bombCooldown,
@@ -49,7 +49,7 @@ class WeaponData {
   );
 
   static const WeaponData penetratorBomb = WeaponData(
-    name: 'Perforateur GBU-28',
+    name: 'Penetrator Bomb',
     damage: GameConfig.penetratorDamage,
     range: GameConfig.worldHeight,
     cooldown: GameConfig.penetratorCooldown,
