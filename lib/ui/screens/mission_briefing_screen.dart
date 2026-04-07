@@ -260,7 +260,7 @@ class MissionBriefingScreen extends StatelessWidget {
           const SizedBox(width: 8),
           Expanded(
             child: Text(
-              'Les Sites Fortifiés ne peuvent être détruits que par la Penetrator Bomb du Stealth X-26.',
+              'Les Sites Fortifiés ne peuvent être détruits que par le GBU-28 Bunker Buster du B-21 Raider.',
               style: GoogleFonts.orbitron(
                   fontSize: 9, color: Colors.white54, letterSpacing: 0.5),
             ),
