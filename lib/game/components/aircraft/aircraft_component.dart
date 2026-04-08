@@ -83,59 +83,56 @@ abstract class AircraftComponent extends PositionComponent {
   void _renderBody(Canvas canvas) {
     final alpha = isCloaked ? 0.35 : 1.0;
 
-    // Rotation based on movement (slight tilt)
-    // In side-view, we face right (angle 0) or left.
-    
-    // Fuselage (Horizontal)
+    // Body (Fuselage) - Tapered for aero look
+    final bodyPath = Path()
+      ..moveTo(size.x * 0.1, size.y * 0.5) // Tail
+      ..quadraticBezierTo(size.x * 0.5, size.y * 0.2, size.x * 0.9, size.y * 0.5) // Top
+      ..quadraticBezierTo(size.x * 0.5, size.y * 0.8, size.x * 0.1, size.y * 0.5) // Bottom
+      ..close();
+
     final bodyPaint = Paint()
       ..shader = LinearGradient(
         begin: Alignment.topCenter,
         end: Alignment.bottomCenter,
         colors: [
           bodyColor.withValues(alpha: alpha),
-          bodyColor.withValues(alpha: 0.7 * alpha),
+          bodyColor.withValues(alpha: 0.6 * alpha),
         ],
       ).createShader(Rect.fromLTWH(0, 0, size.x, size.y));
 
-    // Tail fin
+    canvas.drawPath(bodyPath, bodyPaint);
+
+    // Tail fin (Vertical stabilizer)
     final tailPath = Path()
-      ..moveTo(size.x * 0.1, size.y * 0.5)
-      ..lineTo(0, size.y * 0.2)
-      ..lineTo(size.x * 0.2, size.y * 0.5)
+      ..moveTo(size.x * 0.15, size.y * 0.4)
+      ..lineTo(size.x * 0.05, size.y * 0.15)
+      ..lineTo(size.x * 0.25, size.y * 0.4)
       ..close();
     canvas.drawPath(tailPath, bodyPaint);
 
-    // Main Body
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(
-        Rect.fromLTWH(size.x * 0.1, size.y * 0.35, size.x * 0.8, size.y * 0.3),
-        const Radius.circular(8),
-      ),
-      bodyPaint,
-    );
-
-    // Wings (Side profile)
+    // Wings (Side-view perspective)
     final wingPaint = Paint()..color = wingColor.withValues(alpha: alpha);
-    canvas.drawRect(
-      Rect.fromLTWH(size.x * 0.4, size.y * 0.45, size.x * 0.3, size.y * 0.1),
-      wingPaint,
-    );
+    final wingPath = Path()
+      ..moveTo(size.x * 0.35, size.y * 0.5)
+      ..lineTo(size.x * 0.55, size.y * 0.75)
+      ..lineTo(size.x * 0.65, size.y * 0.5)
+      ..close();
+    canvas.drawPath(wingPath, wingPaint);
 
-    // Cockpit
+    // Cockpit Glass
+    final cockpitPaint = Paint()
+      ..color = Colors.lightBlueAccent.withValues(alpha: 0.7 * alpha)
+      ..style = PaintingStyle.fill;
     canvas.drawOval(
-      Rect.fromLTWH(size.x * 0.6, size.y * 0.35, size.x * 0.2, size.y * 0.15),
-      Paint()..color = Colors.lightBlueAccent.withValues(alpha: 0.6 * alpha),
+      Rect.fromLTWH(size.x * 0.6, size.y * 0.35, size.x * 0.2, size.y * 0.12),
+      cockpitPaint,
     );
 
-    // Engine Glow (Back)
-    final pulse = 0.8 + (0.2 * (DateTime.now().millisecondsSinceEpoch % 500 / 500));
-    canvas.drawCircle(
-      Offset(size.x * 0.1, size.y * 0.5),
-      4 * pulse,
-      Paint()
-        ..color = const Color(0xFFFF6600).withValues(alpha: 0.9 * alpha)
-        ..maskFilter = MaskFilter.blur(BlurStyle.normal, 4 * pulse),
-    );
+    // Engine Exhaust Glow
+    final enginePaint = Paint()
+      ..color = Colors.orange.withValues(alpha: 0.8 * alpha)
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 3);
+    canvas.drawCircle(Offset(size.x * 0.1, size.y * 0.5), 3, enginePaint);
   }
 
   void _renderHealthBar(Canvas canvas) {

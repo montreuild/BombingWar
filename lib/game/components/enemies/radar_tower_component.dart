@@ -1,12 +1,11 @@
-import 'package:flame/components.dart';
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
-import '../../../config/game_config.dart';
 import '../../../models/enemy_data.dart';
 import 'enemy_component.dart';
 
 class RadarTowerComponent extends EnemyComponent {
   RadarTowerComponent({required super.game, required super.position})
-      : super(enemyData: EnemyData.bunker); // Reusing bunker data for stats or define new
+      : super(enemyData: EnemyData.bunker); // Reusing bunker data for stats
 
   final double radarRadius = 150.0;
   double _pulseTimer = 0.0;
@@ -20,7 +19,8 @@ class RadarTowerComponent extends EnemyComponent {
     if (player != null) {
       final dist = position.distanceTo(player.position);
       final wasInZone = _playerInZone;
-      _playerInZone = dist < radarRadius && !player.isCloaked;
+      // Check distance from center of tower
+      _playerInZone = dist < radarRadius;
       
       if (_playerInZone && !wasInZone) {
         game.audioManager.playRadarBeep().catchError((_) {});
@@ -32,33 +32,53 @@ class RadarTowerComponent extends EnemyComponent {
 
   @override
   void onRender(Canvas canvas) {
-    // 1. Tower Structure
-    final towerPaint = Paint()..color = const Color(0xFF333333);
-    canvas.drawRect(Rect.fromLTWH(size.x * 0.4, size.y * 0.2, size.x * 0.2, size.y * 0.8), towerPaint);
+    // 1. Tower Structure (Lattice style)
+    final towerPaint = Paint()
+      ..color = const Color(0xFF444444)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2;
+    
+    final path = Path()
+      ..moveTo(size.x * 0.3, size.y)
+      ..lineTo(size.x * 0.5, size.y * 0.2)
+      ..lineTo(size.x * 0.7, size.y)
+      ..moveTo(size.x * 0.4, size.y * 0.6)
+      ..lineTo(size.x * 0.6, size.y * 0.6)
+      ..moveTo(size.x * 0.45, size.y * 0.4)
+      ..lineTo(size.x * 0.55, size.y * 0.4);
+    canvas.drawPath(path, towerPaint);
     
     // Rotating Dish
-    final dishPaint = Paint()..color = const Color(0xFF555555)..style = PaintingStyle.stroke..strokeWidth = 3;
+    final dishPaint = Paint()..color = const Color(0xFF666666)..style = PaintingStyle.stroke..strokeWidth = 3;
     final dishAngle = _pulseTimer * 3;
     canvas.save();
     canvas.translate(size.x * 0.5, size.y * 0.2);
-    canvas.drawArc(Rect.fromCenter(center: Offset.zero, width: 30, height: 10), dishAngle, 2.0, false, dishPaint);
+    canvas.rotate(dishAngle);
+    canvas.drawArc(Rect.fromCenter(center: Offset.zero, width: 30, height: 10), 0, 3.14, false, dishPaint);
     canvas.restore();
 
-    // 2. Radar Zone (The Circle)
+    // 2. Radar Zone (Visual scanning effect)
     final pulse = (_pulseTimer % 2.0) / 2.0;
-    final radarPaint = Paint()
-      ..color = (_playerInZone ? Colors.red : Colors.green).withValues(alpha: 0.1 + (0.1 * (1.0 - pulse)))
-      ..style = PaintingStyle.fill;
+    final color = _playerInZone ? Colors.red : Colors.green;
     
-    canvas.drawCircle(Offset(size.x * 0.5, size.y * 0.5), radarRadius * pulse, radarPaint);
+    canvas.drawCircle(
+      Offset(size.x * 0.5, size.y * 0.5), 
+      radarRadius * pulse, 
+      Paint()..color = color.withValues(alpha: 0.1 * (1.0 - pulse))
+    );
     
-    final borderPaint = Paint()
-      ..color = (_playerInZone ? Colors.red : Colors.green).withValues(alpha: 0.3)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1;
-    canvas.drawCircle(Offset(size.x * 0.5, size.y * 0.5), radarRadius, borderPaint);
+    canvas.drawCircle(
+      Offset(size.x * 0.5, size.y * 0.5), 
+      radarRadius, 
+      Paint()..color = color.withValues(alpha: 0.2)..style = PaintingStyle.stroke
+    );
 
-    // Red light at top
-    canvas.drawCircle(Offset(size.x * 0.5, size.y * 0.1), 3, Paint()..color = Colors.red);
+    // Red light at top (pulsing)
+    final pulseVal = (0.5 + 0.5 * math.sin(_pulseTimer * 5)).clamp(0.0, 1.0);
+    canvas.drawCircle(
+      Offset(size.x * 0.5, size.y * 0.2), 
+      3, 
+      Paint()..color = Colors.red.withValues(alpha: pulseVal)
+    );
   }
 }

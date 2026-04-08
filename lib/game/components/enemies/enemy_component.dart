@@ -20,7 +20,7 @@ abstract class EnemyComponent extends PositionComponent {
   final EnemyData enemyData;
 
   late double _health;
-  double _fireCooldown = 0.0;
+  double fireCooldown = 0.0;
 
   /// Callback invoked when this enemy is destroyed.
   void Function()? onDefeated;
@@ -41,8 +41,8 @@ abstract class EnemyComponent extends PositionComponent {
   @override
   void update(double dt) {
     super.update(dt);
-    if (_fireCooldown > 0) _fireCooldown -= dt;
-    onUpdate(dt, _fireCooldown <= 0);
+    if (fireCooldown > 0) fireCooldown -= dt;
+    onUpdate(dt, fireCooldown <= 0);
   }
 
   @override
@@ -73,14 +73,18 @@ abstract class EnemyComponent extends PositionComponent {
   }
 
   void resetFireCooldown(double cooldown) {
-    _fireCooldown = cooldown;
+    fireCooldown = cooldown;
   }
 
   void _die() {
     game.spawnExplosion(position, radius: enemyData.size * 0.8);
     onDefeated?.call();
+    onKilled();
     removeFromParent();
   }
+
+  /// Subclasses can override this to perform actions when killed.
+  void onKilled() {}
 
   void _drawHealthBar(Canvas canvas) {
     if (_health >= enemyData.health) return; // No bar at full health

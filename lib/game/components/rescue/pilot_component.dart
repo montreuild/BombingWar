@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'package:flame/components.dart';
 import 'package:flutter/material.dart';
 import '../../../config/game_config.dart';
@@ -9,15 +10,20 @@ class PilotComponent extends PositionComponent {
 
   final BombingWarGame game;
   bool isOnGround = false;
-  final double _fallSpeed = 50.0;
+  final double _fallSpeed = 40.0;
+  double _swingTimer = 0.0;
 
   @override
   void update(double dt) {
     super.update(dt);
     if (!isOnGround) {
+      _swingTimer += dt * 2;
+      // Slight swaying while falling
+      position.x += math.sin(_swingTimer) * 10 * dt;
       position.y += _fallSpeed * dt;
-      if (position.y >= GameConfig.groundLevel - 10) {
-        position.y = GameConfig.groundLevel - 10;
+      
+      if (position.y >= GameConfig.groundLevel - 15) {
+        position.y = GameConfig.groundLevel - 15;
         isOnGround = true;
       }
     }
@@ -25,17 +31,54 @@ class PilotComponent extends PositionComponent {
 
   @override
   void render(Canvas canvas) {
+    final bodyPaint = Paint()..color = const Color(0xFF556644); // Flight suit
+    final skinPaint = Paint()..color = const Color(0xFFFFDBAC);
+    final helmetPaint = Paint()..color = Colors.white;
+    final linePaint = Paint()..color = Colors.white70..strokeWidth = 1.0;
+
     if (!isOnGround) {
-      // Parachute
-      final parachutePaint = Paint()..color = Colors.white;
-      canvas.drawArc(Rect.fromLTWH(-10, -25, 40, 30), 3.14, 3.14, true, parachutePaint);
-      canvas.drawLine(const Offset(10, -10), const Offset(0, 0), Paint()..color = Colors.grey);
-      canvas.drawLine(const Offset(10, -10), const Offset(20, 0), Paint()..color = Colors.grey);
+      // Parachute canopy
+      final parachutePaint = Paint()
+        ..color = Colors.white
+        ..style = PaintingStyle.fill;
+      
+      canvas.drawArc(
+        Rect.fromCenter(center: const Offset(10, -20), width: 40, height: 25),
+        3.14, 3.14, true, parachutePaint
+      );
+      
+      // Parachute lines
+      canvas.drawLine(const Offset(-10, -20), const Offset(10, 5), linePaint);
+      canvas.drawLine(const Offset(30, -20), const Offset(10, 5), linePaint);
     }
 
     // Pilot body
-    canvas.drawCircle(const Offset(10, 10), 5, Paint()..color = Colors.orange);
-    canvas.drawRect(const Rect.fromLTWH(7, 15, 6, 8), Paint()..color = Colors.green);
+    // Head & Helmet
+    canvas.drawCircle(const Offset(10, 5), 4, skinPaint);
+    canvas.drawArc(
+      Rect.fromCircle(center: const Offset(10, 5), radius: 5),
+      -3.14, 3.14, true, helmetPaint
+    );
+    // Visor
+    canvas.drawRect(const Rect.fromLTWH(8, 3, 5, 2), Paint()..color = Colors.black54);
+    
+    // Torso (Flight suit)
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(const Rect.fromLTWH(6, 9, 8, 10), const Radius.circular(2)),
+      bodyPaint
+    );
+    
+    // Legs
+    canvas.drawRect(const Rect.fromLTWH(7, 19, 2, 4), bodyPaint);
+    canvas.drawRect(const Rect.fromLTWH(11, 19, 2, 4), bodyPaint);
+
+    // If on ground, draw a small white crumpled parachute next to him
+    if (isOnGround) {
+      canvas.drawOval(
+        const Rect.fromLTWH(18, 18, 15, 6),
+        Paint()..color = Colors.white.withValues(alpha: 0.6)
+      );
+    }
   }
 
   void die() {

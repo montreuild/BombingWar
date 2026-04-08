@@ -40,40 +40,36 @@ class HudComponent extends PositionComponent {
   }
 
   void _drawHealthBar(Canvas canvas) {
-    const double barW = 120.0;
-    const double barH = 12.0;
+    const double barW = 100.0;
+    const double barH = 8.0;
     const double left = GameConfig.hudPadding;
-    const double top = GameConfig.hudPadding + 24.0;
+    const double top = GameConfig.hudPadding + 20.0;
 
-    canvas.drawRect(
-      const Rect.fromLTWH(left, top, barW, barH),
-      Paint()..color = Colors.black54,
+    // Subtle background
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(const Rect.fromLTWH(left, top, barW, barH), const Radius.circular(4)),
+      Paint()..color = Colors.black45,
     );
 
     final player = game.playerAircraft;
     final pct = player != null
         ? (player.health / player.maxHealth).clamp(0.0, 1.0)
         : 0.0;
+    
     final Color hpColor = pct > 0.5
-        ? Colors.green
+        ? const Color(0xFF4CAF50)
         : pct > 0.25
-            ? Colors.orange
-            : Colors.red;
+            ? const Color(0xFFFFC107)
+            : const Color(0xFFF44336);
 
-    canvas.drawRect(
-      Rect.fromLTWH(left, top, barW * pct, barH),
-      Paint()..color = hpColor,
-    );
+    if (pct > 0) {
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(Rect.fromLTWH(left, top, barW * pct, barH), const Radius.circular(4)),
+        Paint()..color = hpColor,
+      );
+    }
 
-    canvas.drawRect(
-      const Rect.fromLTWH(left, top, barW, barH),
-      Paint()
-        ..color = Colors.white38
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 1,
-    );
-
-    _drawText(canvas, 'HP', const Offset(left + barW + 4, top - 1),
+    _drawText(canvas, 'HP', const Offset(left, top - 12),
         fontSize: 10, color: Colors.white70);
   }
 

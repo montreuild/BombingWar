@@ -37,57 +37,41 @@ class RpgUnitComponent extends EnemyComponent {
 
   @override
   void onRender(Canvas canvas) {
-    // 1. Shadow for depth
-    canvas.drawCircle(
-      Offset(size.x * 0.5, size.y * 0.9),
-      size.x * 0.4,
-      Paint()..color = Colors.black.withValues(alpha: 0.3)..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4),
-    );
+    final bodyPaint = Paint()..color = const Color(0xFF556644);
+    final skinPaint = Paint()..color = const Color(0xFFFFDBAC);
+    final tubePaint = Paint()..color = const Color(0xFF222222);
 
-    // 2. Mobile Launcher Chassis (Truck-like)
-    final chassisPaint = Paint()
-      ..shader = const LinearGradient(
-        begin: Alignment.topCenter,
-        end: Alignment.bottomCenter,
-        colors: [Color(0xFF8B0000), Color(0xFF4B0000)],
-      ).createShader(Rect.fromLTWH(size.x * 0.1, size.y * 0.3, size.x * 0.8, size.y * 0.5));
+    // 1. Soldier (Kneeling/Shouldering RPG)
+    // Head
+    canvas.drawCircle(Offset(size.x * 0.4, size.y * 0.4), 5, skinPaint);
+    // Helmet
+    canvas.drawArc(Rect.fromCircle(center: Offset(size.x * 0.4, size.y * 0.4), radius: 6), -3.14, 3.14, true, bodyPaint);
     
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(
-        Rect.fromLTWH(size.x * 0.1, size.y * 0.3, size.x * 0.8, size.y * 0.5),
-        const Radius.circular(4),
-      ),
-      chassisPaint,
-    );
-
-    // 3. Wheels / Tracks
-    final wheelPaint = Paint()..color = const Color(0xFF222222);
-    canvas.drawRRect(RRect.fromRectAndRadius(Rect.fromLTWH(size.x * 0.05, size.y * 0.35, 6, 12), const Radius.circular(2)), wheelPaint);
-    canvas.drawRRect(RRect.fromRectAndRadius(Rect.fromLTWH(size.x * 0.85, size.y * 0.35, 6, 12), const Radius.circular(2)), wheelPaint);
-    canvas.drawRRect(RRect.fromRectAndRadius(Rect.fromLTWH(size.x * 0.05, size.y * 0.6, 6, 12), const Radius.circular(2)), wheelPaint);
-    canvas.drawRRect(RRect.fromRectAndRadius(Rect.fromLTWH(size.x * 0.85, size.y * 0.6, 6, 12), const Radius.circular(2)), wheelPaint);
-
-    // 4. Missile Tube (Elevated)
-    final tubePaint = Paint()..color = const Color(0xFF444444);
+    // Body
+    canvas.drawRRect(RRect.fromRectAndRadius(Rect.fromLTWH(size.x * 0.3, size.y * 0.55, 10, 10), const Radius.circular(2)), bodyPaint);
+    
+    // 2. RPG Launcher (The "Tube")
     canvas.save();
-    canvas.translate(size.x * 0.5, size.y * 0.4);
-    // Add a slight rotation if moving? (Maybe later)
-    canvas.drawRect(
-      Rect.fromCenter(center: Offset.zero, width: size.x * 0.4, height: size.y * 0.6),
-      tubePaint,
-    );
-    // Tube detail
-    canvas.drawRect(
-      Rect.fromCenter(center: const Offset(0, -10), width: size.x * 0.3, height: 4),
-      Paint()..color = Colors.black45,
-    );
+    canvas.translate(size.x * 0.5, size.y * 0.45);
+    // Angle slightly up towards sky
+    canvas.rotate(-0.5); 
+    
+    // Main tube
+    canvas.drawRect(const Rect.fromLTWH(-8, -2, 22, 4), tubePaint);
+    // Back cone (exhaust)
+    final backPath = Path()
+      ..moveTo(-8, -2)
+      ..lineTo(-12, -4)
+      ..lineTo(-12, 4)
+      ..lineTo(-8, 2)
+      ..close();
+    canvas.drawPath(backPath, tubePaint);
+    
+    // Front rocket tip (if loaded)
+    if (fireCooldown <= 0.5) {
+      canvas.drawCircle(const Offset(14, 0), 3, Paint()..color = Colors.grey);
+    }
+    
     canvas.restore();
-
-    // 5. Warning / Status light
-    canvas.drawCircle(
-      Offset(size.x * 0.2, size.y * 0.35),
-      2,
-      Paint()..color = Colors.yellowAccent.withValues(alpha: 0.8),
-    );
   }
 }

@@ -13,6 +13,8 @@ import 'components/aircraft/interceptor_component.dart';
 import 'components/aircraft/stealth_component.dart';
 import 'components/effects/explosion_effect.dart';
 import 'components/environment/starfield_component.dart';
+import 'components/effects/crater_component.dart';
+import 'components/effects/debris_component.dart';
 import 'components/rescue/jeep_component.dart';
 import 'components/rescue/pilot_component.dart';
 import 'components/rescue/rescue_helicopter_component.dart';
@@ -331,6 +333,24 @@ class BombingWarGame extends FlameGame with KeyboardEvents {
     add(ExplosionEffect(position: pos.clone(), radius: radius));
     audioManager.playExplosion().catchError((_) {});
     shakeScreen(intensity: radius / 10.0);
+
+    // Spawn debris
+    final rng = math.Random();
+    for (int i = 0; i < 8; i++) {
+      add(DebrisComponent(
+        position: pos.clone(),
+        color: i % 2 == 0 ? Colors.orange : Colors.grey,
+        velocity: Vector2(
+          (rng.nextDouble() - 0.5) * 200,
+          -rng.nextDouble() * 200,
+        ),
+      ));
+    }
+
+    // Spawn crater if near ground
+    if ((pos.y - GameConfig.groundLevel).abs() < 20) {
+      add(CraterComponent(position: Vector2(pos.x, GameConfig.groundLevel), radius: radius * 0.5));
+    }
   }
 
   void shakeScreen({double duration = 0.3, double intensity = 5.0}) {

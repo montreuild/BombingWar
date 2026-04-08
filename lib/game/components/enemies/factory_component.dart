@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'package:flame/components.dart';
 import 'package:flutter/material.dart';
 
@@ -5,6 +6,7 @@ import '../../../config/game_config.dart';
 import '../../../models/enemy_data.dart';
 import '../projectiles/bullet_component.dart';
 import 'enemy_component.dart';
+import 'infantry_component.dart';
 
 /// Underground Factory — boss target.
 /// Only destroyable by penetrator bombs. Spawns infantry reinforcements.
@@ -36,6 +38,18 @@ class FactoryComponent extends EnemyComponent {
     }
   }
 
+  @override
+  void onKilled() {
+    // Nest of wasps: Spawn massive infantry on destruction
+    final rng = math.Random();
+    for (int i = 0; i < 8; i++) {
+      game.add(InfantryComponent(
+        game: game,
+        position: position + Vector2((rng.nextDouble() - 0.5) * 80, 0),
+      ));
+    }
+  }
+
   void _fireDefenseGuns() {
     final player = game.playerAircraft!;
     final dir = (player.position - position).normalized();
@@ -52,8 +66,6 @@ class FactoryComponent extends EnemyComponent {
   }
 
   void _spawnReinforcement() {
-    // Notify wave system to add one infantry near the factory
-    // (Direct spawn for simplicity; wave system handles the count)
     final spawnPos = position + Vector2(40, 0);
     game.add(_FactoryInfantry(game: game, position: spawnPos));
   }
@@ -156,10 +168,14 @@ class _FactoryInfantry extends EnemyComponent {
 
   @override
   void onRender(Canvas canvas) {
-    canvas.drawCircle(
-      Offset(size.x / 2, size.y / 2),
-      size.x * 0.35,
-      Paint()..color = const Color(0xFF775533),
-    );
+    final bodyPaint = Paint()..color = const Color(0xFF4B5320);
+    final skinPaint = Paint()..color = const Color(0xFFFFDBAC);
+    
+    // Head
+    canvas.drawCircle(Offset(size.x * 0.5, size.y * 0.3), 4, skinPaint);
+    // Helmet
+    canvas.drawArc(Rect.fromCircle(center: Offset(size.x * 0.5, size.y * 0.3), radius: 5), -3.14, 3.14, true, bodyPaint);
+    // Body
+    canvas.drawRect(Rect.fromLTWH(size.x * 0.35, size.y * 0.45, 6, 8), bodyPaint);
   }
 }

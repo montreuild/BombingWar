@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import '../../../config/game_config.dart';
@@ -21,18 +22,6 @@ class BombComponent extends ProjectileComponent {
   final double _horizontalSpeed;
   double _verticalSpeed;
 
-  BombComponent({
-    required super.position,
-    required super.damage,
-    required super.explosionRadius,
-    required super.isPlayerProjectile,
-    required super.isPenetrator,
-  })  : _horizontalSpeed = isPlayerProjectile ? 100.0 : 0.0,
-        _verticalSpeed = 0.0,
-        super(
-          size: isPenetrator ? GameConfig.penetratorSize : GameConfig.bombSize,
-        );
-
   @override
   void update(double dt) {
     // Parabolic trajectory
@@ -55,28 +44,40 @@ class BombComponent extends ProjectileComponent {
   @override
   void render(Canvas canvas) {
     super.render(canvas);
-    final color = isPenetrator
-        ? const Color(0xFFFF2200)
-        : const Color(0xFFFF9900);
+    
+    final mainColor = isPenetrator ? const Color(0xFF444444) : const Color(0xFF556644);
+    final highlightColor = isPenetrator ? const Color(0xFFFF2200) : const Color(0xFF778866);
 
+    final paint = Paint()..color = mainColor;
+    
+    // Rotation based on velocity
+    canvas.save();
+    canvas.translate(size.x / 2, size.y / 2);
+    final angle = math.atan2(_verticalSpeed, _horizontalSpeed);
+    canvas.rotate(angle);
+
+    // Bomb Body (Tapered Cylinder/Oval)
     canvas.drawOval(
-      Rect.fromCenter(
-        center: Offset(size.x / 2, size.y / 2),
-        width: size.x * 0.7,
-        height: size.y,
-      ),
-      Paint()..color = color,
+      Rect.fromCenter(center: Offset.zero, width: size.x, height: size.y * 0.7),
+      paint,
     );
 
-    if (isPenetrator) {
-      canvas.drawPath(
-        Path()
-          ..moveTo(size.x / 2, 0)
-          ..lineTo(size.x * 0.3, size.y * 0.3)
-          ..lineTo(size.x * 0.7, size.y * 0.3)
-          ..close(),
-        Paint()..color = const Color(0xFFCC0000),
-      );
-    }
+    // Nose cone
+    canvas.drawArc(
+      Rect.fromCenter(center: Offset(size.x * 0.2, 0), width: size.x * 0.6, height: size.y * 0.7),
+      -1.57, 3.14, true, 
+      Paint()..color = highlightColor
+    );
+
+    // Fins (at the back)
+    final finPath = Path()
+      ..moveTo(-size.x * 0.3, -size.y * 0.3)
+      ..lineTo(-size.x * 0.5, -size.y * 0.5)
+      ..lineTo(-size.x * 0.5, size.y * 0.5)
+      ..lineTo(-size.x * 0.3, size.y * 0.3)
+      ..close();
+    canvas.drawPath(finPath, paint);
+
+    canvas.restore();
   }
 }

@@ -53,45 +53,27 @@ class InfantryComponent extends EnemyComponent {
 
   @override
   void onRender(Canvas canvas) {
-    // 1. Drop shadow
-    canvas.drawCircle(
-      Offset(size.x * 0.5, size.y * 0.7),
-      size.x * 0.3,
-      Paint()..color = Colors.black.withValues(alpha: 0.2)..maskFilter = const MaskFilter.blur(BlurStyle.normal, 2),
-    );
+    final bodyPaint = Paint()..color = const Color(0xFF4B5320); // Army Green
+    final skinPaint = Paint()..color = const Color(0xFFFFDBAC);
+    final blackPaint = Paint()..color = Colors.black;
 
-    // 2. Body (Camo green/brown gradient)
-    final bodyPaint = Paint()
-      ..shader = const RadialGradient(
-        colors: [Color(0xFF885522), Color(0xFF443311)],
-      ).createShader(Rect.fromCircle(center: Offset(size.x * 0.5, size.y * 0.5), radius: size.x * 0.4));
+    // Head & Helmet
+    canvas.drawCircle(Offset(size.x * 0.5, size.y * 0.3), 5, skinPaint);
+    canvas.drawArc(Rect.fromCircle(center: Offset(size.x * 0.5, size.y * 0.3), radius: 6), -3.14, 3.14, true, bodyPaint);
     
-    canvas.drawCircle(
-      Offset(size.x / 2, size.y / 2),
-      size.x * 0.35,
-      bodyPaint,
-    );
+    // Body (Torso)
+    canvas.drawRRect(RRect.fromRectAndRadius(Rect.fromLTWH(size.x * 0.35, size.y * 0.45, 8, 12), const Radius.circular(2)), bodyPaint);
+    
+    // Legs
+    canvas.drawRect(Rect.fromLTWH(size.x * 0.4, size.y * 0.7, 3, 6), bodyPaint);
+    canvas.drawRect(Rect.fromLTWH(size.x * 0.55, size.y * 0.7, 3, 6), bodyPaint);
 
-    // 3. Helmet detail
-    canvas.drawArc(
-      Rect.fromCircle(center: Offset(size.x * 0.5, size.y * 0.5), radius: size.x * 0.35),
-      -3.14,
-      3.14,
-      true,
-      Paint()..color = const Color(0xFF556644),
-    );
-
-    // 4. Weapon (Rifle pointing towards player movement)
-    final weaponPaint = Paint()..color = const Color(0xFF111111);
+    // Rifle
     canvas.save();
-    canvas.translate(size.x * 0.5, size.y * 0.5);
-    // Point weapon in move direction
-    final angle = _moveDir.x > 0 ? 0.3 : -0.3;
-    canvas.rotate(angle);
-    canvas.drawRect(
-      const Rect.fromLTWH(0, -2, 12, 4),
-      weaponPaint,
-    );
+    canvas.translate(size.x * 0.5, size.y * 0.55);
+    final rifleAngle = _moveDir.x > 0 ? 0.2 : -0.2;
+    canvas.rotate(rifleAngle);
+    canvas.drawRect(const Rect.fromLTWH(0, -1, 15, 3), blackPaint);
     canvas.restore();
   }
 }
