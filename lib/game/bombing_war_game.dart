@@ -140,9 +140,9 @@ class BombingWarGame extends FlameGame with KeyboardEvents {
 
     levelManager.setLevel(saveManager.progress.currentLevel);
 
-    await _spawnPlayer();
+    await add(TerrainComponent()); // Background — must be added first (renders behind everything)
     await add(StarfieldComponent());
-    await add(TerrainComponent()); // Ground and Underground layer
+    await _spawnPlayer();
     await _buildHud();
 
     gameManager.setState(GameState.playing);

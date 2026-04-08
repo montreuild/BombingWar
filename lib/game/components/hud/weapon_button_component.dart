@@ -48,12 +48,12 @@ class WeaponButtonComponent extends PositionComponent {
   @override
   void render(Canvas canvas) {
     super.render(canvas);
-    _drawButton(canvas, _firePos, 'A', Colors.red);
-    _drawButton(canvas, _specialPos, 'B', Colors.blue);
-    _drawButton(canvas, _switchPos, 'C', Colors.green);
+    _drawButton(canvas, _firePos, 'FIRE', 'Tirer', Colors.red);
+    _drawButton(canvas, _specialPos, 'SPEC', 'Spécial', Colors.blue);
+    _drawButton(canvas, _switchPos, 'NEXT', 'Arme suiv.', Colors.green);
   }
 
-  void _drawButton(Canvas canvas, Vector2 pos, String label, Color color) {
+  void _drawButton(Canvas canvas, Vector2 pos, String label, String subLabel, Color color) {
     final rect = Rect.fromLTWH(pos.x, pos.y, _btnSize, _btnSize);
     canvas.drawRRect(
       RRect.fromRectAndRadius(rect, const Radius.circular(10)),
@@ -67,14 +67,14 @@ class WeaponButtonComponent extends PositionComponent {
         ..strokeWidth = 2,
     );
 
-    // Label
+    // Main label
     final tp = TextPainter(
       text: TextSpan(
         text: label,
         style: TextStyle(
-          fontSize: 20,
+          fontSize: 14,
           fontWeight: FontWeight.bold,
-          color: color.withValues(alpha: 0.9),
+          color: Colors.white.withValues(alpha: 0.95),
         ),
       ),
       textDirection: TextDirection.ltr,
@@ -83,7 +83,26 @@ class WeaponButtonComponent extends PositionComponent {
       canvas,
       Offset(
         pos.x + _btnSize / 2 - tp.width / 2,
-        pos.y + _btnSize / 2 - tp.height / 2,
+        pos.y + _btnSize / 2 - tp.height / 2 - 6,
+      ),
+    );
+
+    // Sub-label (action description)
+    final sub = TextPainter(
+      text: TextSpan(
+        text: subLabel,
+        style: TextStyle(
+          fontSize: 8,
+          color: color.withValues(alpha: 0.85),
+        ),
+      ),
+      textDirection: TextDirection.ltr,
+    )..layout();
+    sub.paint(
+      canvas,
+      Offset(
+        pos.x + _btnSize / 2 - sub.width / 2,
+        pos.y + _btnSize / 2 + 6,
       ),
     );
   }

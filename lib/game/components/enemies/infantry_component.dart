@@ -17,21 +17,19 @@ class InfantryComponent extends EnemyComponent {
 
   @override
   void onUpdate(double dt, bool canFire) {
-    // Slow lateral patrol
+    // Slow lateral patrol along the ground
     _moveTimer += dt;
     if (_moveTimer > 2.0) {
       _moveDir = Vector2(-_moveDir.x, 0);
       _moveTimer = 0;
     }
-    position += _moveDir * enemyData.speed * dt;
+    position.x += _moveDir.x * enemyData.speed * dt;
 
-    // Clamp to upper half of world
+    // Stay on the ground surface
     position.x = position.x.clamp(
         GameConfig.spawnMargin,
         GameConfig.worldWidth - GameConfig.spawnMargin);
-    position.y = position.y.clamp(
-        GameConfig.spawnMargin,
-        GameConfig.worldHeight * 0.45);
+    position.y = GameConfig.groundLevel - enemyData.size / 2;
 
     if (canFire && game.playerAircraft != null) {
       _fireBullet();
