@@ -4,52 +4,120 @@ import 'package:flame/components.dart';
 import 'package:flutter/material.dart';
 import '../../../config/game_config.dart';
 
-/// Terrain component — draws a night-time Middle-East desert backdrop:
-/// starry sky, crescent moon, city silhouettes with minarets, sandy ground
-/// and a rocky underground layer.
+/// Terrain component for Desert Strike Mobile.
+/// Procéduralement généré via Perlin noise selon le levelIndex.
+/// 4 couches verticales : sky / ground / underground_L1 / underground_L2.
+/// Parallax scrolling with 3 layers of different speeds.
+/// Ground = irregular polygon (hills, dunes, craters).
 class TerrainComponent extends Component {
-  static const _skyTop = Color(0xFF060C14);
-  static const _skyHorizon = Color(0xFF111E30);
+  TerrainComponent({required this.terrainSeed, this.missionDistance = 2000.0});
+
+  final int terrainSeed;
+  final double missionDistance;
+
+  // Colors
+  static const _skyTop = Color(0xFF1A0A2E);
+  static const _skyHorizon = Color(0xFFCC8844);
   static const _sandSurface = Color(0xFFC4A060);
   static const _sandMid = Color(0xFF9C7A45);
-  static const _rockDeep = Color(0xFF3B2A14);
-  static const _buildingColor = Color(0xFF1A1208);
-  static const _duneColor = Color(0xFF5A4020);
-  static const _windowColor = Color(0xFFFFBB44);
+  static const _rockL1 = Color(0xFF5A3A1A);
+  static const _rockL2 = Color(0xFF2E1A0A);
+  static const _duneColor = Color(0xFF8A6530);
+  static const _mountainColor = Color(0xFF4A3020);
+  static const _rockerColor = Color(0xFF3B2A14);
 
-  late final List<_Building> _buildings;
-  late final List<_Dune> _dunes;
+  // Parallax backgrounds (generated procedurally)
+  late final List<_ParallaxMountain> _farMountains;
+  late final List<_ParallaxDune> _midDunes;
+  late final List<_ParallaxRock> _nearRocks;
+
+  // Ground profile (irregular polygon with Perlin noise)
+  late final List<double> _groundProfile; // y-offset for each x pixel
+  final List<_Crater> _craters = [];
+
+  // Camera offset for scrolling
+  double cameraX = 0.0;
 
   @override
   Future<void> onLoad() async {
-    final rng = Random(GameConfig.terrainSeedMultiplier);
-    _dunes = _buildDunes(rng);
-    _buildings = _buildBuildings(rng);
+    final rng = Random(terrainSeed);
+    _generateGroundProfile(rng);
+    _farMountains = _generateFarMountains(rng);
+    _midDunes = _generateMidDunes(rng);
+    _nearRocks = _generateNearRocks(rng);
   }
 
-  // ── generators ──────────────────────────────────────────────────────────
+  /// Get the ground level (y coordinate) at a given world x position.
+  double groundLevelAt(double worldX) {
+    final index = worldX.round().clamp(0, _groundProfile.length - 1);
+    return GameConfig.groundLevel + _groundProfile[index];
+  }
 
-  List<_Dune> _buildDunes(Random rng) {
-    final list = <_Dune>[];
+  /// Add a crater deformation at worldX.
+  void addCrater(double worldX, double radius) {
+    _craters.add(_Crater(cx: worldX, radius: radius));
+    // Deform the ground profile
+    final startX = (worldX - radius).round().clamp(0, _groundProfile.length - 1);
+    final endX = (worldX + radius).round().clamp(0, _groundProfile.length - 1);
+    for (int x = startX; x <= endX; x++) {
+      final dist = (x - worldX).abs();
+      final deformation = (1 - (dist / radius)) * radius * 0.3;
+      if (deformation > 0) {
+        _groundProfile[x] += deformation; // push ground down
+      }
+    }
+  }
+
+  // ── Perlin noise approximation ──────────────────────────────────────────
+
+  void _generateGroundProfile(Random rng) {
+    final profileLength = missionDistance.round() + 100;
+    _groundProfile = List<double>.filled(profileLength, 0.0);
+
+    // Simple Perlin-like noise using multiple octaves
+    for (int octave = 0; octave < 4; octave++) {
+      final frequency = 0.003 * (1 << octave);
+      final amplitude = 20.0 / (1 << octave);
+      final phase = rng.nextDouble() * 2 * pi;
+      for (int x = 0; x < profileLength; x++) {
+        _groundProfile[x] +=
+            sin(x * frequency + phase) * amplitude +
+            cos(x * frequency * 1.7 + phase * 0.5) * amplitude * 0.5;
+      }
+    }
+  }
+
+  List<_ParallaxMountain> _generateFarMountains(Random rng) {
+    final list = <_ParallaxMountain>[];
     double x = 0;
-    while (x < GameConfig.worldWidth) {
-      final w = 90.0 + rng.nextDouble() * 150;
-      final h = 15.0 + rng.nextDouble() * 25;
-      list.add(_Dune(cx: x + w / 2, w: w, h: h));
-      x += w * 0.6 + rng.nextDouble() * 40;
+    while (x < missionDistance + GameConfig.worldWidth) {
+      final w = 150 + rng.nextDouble() * 200;
+      final h = 60 + rng.nextDouble() * 100;
+      list.add(_ParallaxMountain(x: x, width: w, height: h));
+      x += w * 0.7 + rng.nextDouble() * 100;
     }
     return list;
   }
 
-  List<_Building> _buildBuildings(Random rng) {
-    final list = <_Building>[];
-    double x = 30.0;
-    while (x < GameConfig.worldWidth - 20) {
-      final type = rng.nextInt(3); // 0=flat, 1=domed, 2=minaret
-      final w = type == 2 ? 12.0 + rng.nextDouble() * 10 : 22.0 + rng.nextDouble() * 38;
-      final h = type == 2 ? 55.0 + rng.nextDouble() * 50 : 20.0 + rng.nextDouble() * 45;
-      list.add(_Building(x: x, w: w, h: h, type: type, hasWindow: rng.nextBool()));
-      x += w + 2.0 + rng.nextDouble() * 60;
+  List<_ParallaxDune> _generateMidDunes(Random rng) {
+    final list = <_ParallaxDune>[];
+    double x = 0;
+    while (x < missionDistance + GameConfig.worldWidth) {
+      final w = 80 + rng.nextDouble() * 120;
+      final h = 20 + rng.nextDouble() * 40;
+      list.add(_ParallaxDune(x: x, width: w, height: h));
+      x += w * 0.5 + rng.nextDouble() * 60;
+    }
+    return list;
+  }
+
+  List<_ParallaxRock> _generateNearRocks(Random rng) {
+    final list = <_ParallaxRock>[];
+    double x = 0;
+    while (x < missionDistance + GameConfig.worldWidth) {
+      final s = 8 + rng.nextDouble() * 16;
+      list.add(_ParallaxRock(x: x, size: s));
+      x += 100 + rng.nextDouble() * 200;
     }
     return list;
   }
@@ -59,15 +127,17 @@ class TerrainComponent extends Component {
   @override
   void render(Canvas canvas) {
     _drawSky(canvas);
-    _drawMoon(canvas);
-    _drawDunes(canvas);
-    _drawBuildings(canvas);
+    _drawParallaxFar(canvas);
+    _drawParallaxMid(canvas);
+    _drawParallaxNear(canvas);
     _drawGround(canvas);
-    _drawUnderground(canvas);
+    _drawUndergroundL1(canvas);
+    _drawUndergroundL2(canvas);
+    _drawCraters(canvas);
   }
 
   void _drawSky(Canvas canvas) {
-    final r = const Rect.fromLTWH(0, 0, GameConfig.worldWidth, GameConfig.groundLevel);
+    final r = Rect.fromLTWH(0, 0, GameConfig.worldWidth, GameConfig.groundLevel);
     canvas.drawRect(
       r,
       Paint()
@@ -79,126 +149,123 @@ class TerrainComponent extends Component {
     );
   }
 
-  void _drawMoon(Canvas canvas) {
-    const cx = GameConfig.worldWidth * 0.82;
-    const cy = 48.0;
-    // Full moon disc
-    canvas.drawCircle(
-      const Offset(cx, cy),
-      20,
-      Paint()..color = const Color(0xFFEDE8C0),
-    );
-    // Shadow to create crescent
-    canvas.drawCircle(
-      const Offset(cx + 11, cy - 4),
-      18,
-      Paint()..color = _skyTop,
-    );
-    // Faint glow
-    canvas.drawCircle(
-      const Offset(cx, cy),
-      28,
-      Paint()
-        ..color = const Color(0x11EDE8C0)
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 10),
-    );
-  }
-
-  void _drawDunes(Canvas canvas) {
-    final paint = Paint()..color = _duneColor;
-    for (final d in _dunes) {
-      final path = Path()
-        ..moveTo(d.cx - d.w / 2, GameConfig.groundLevel)
-        ..quadraticBezierTo(d.cx, GameConfig.groundLevel - d.h, d.cx + d.w / 2, GameConfig.groundLevel)
-        ..close();
-      canvas.drawPath(path, paint);
+  void _drawParallaxFar(Canvas canvas) {
+    final paint = Paint()..color = _mountainColor.withValues(alpha: 0.4);
+    for (final m in _farMountains) {
+      final screenX = m.x - cameraX * GameConfig.parallaxFarSpeed;
+      // Wrap around for infinite scrolling
+      final wrappedX = screenX % (missionDistance + GameConfig.worldWidth) - GameConfig.worldWidth;
+      if (wrappedX > -m.width && wrappedX < GameConfig.worldWidth + m.width) {
+        final path = Path()
+          ..moveTo(wrappedX, GameConfig.groundLevel)
+          ..lineTo(wrappedX + m.width * 0.3, GameConfig.groundLevel - m.height)
+          ..lineTo(wrappedX + m.width * 0.5, GameConfig.groundLevel - m.height * 0.85)
+          ..lineTo(wrappedX + m.width * 0.7, GameConfig.groundLevel - m.height * 0.95)
+          ..lineTo(wrappedX + m.width, GameConfig.groundLevel)
+          ..close();
+        canvas.drawPath(path, paint);
+      }
     }
   }
 
-  void _drawBuildings(Canvas canvas) {
-    final bp = Paint()..color = _buildingColor;
-    final wp = Paint()..color = _windowColor.withValues(alpha: 0.75);
-
-    for (final b in _buildings) {
-      final baseY = GameConfig.groundLevel - b.h;
-      // Main body
-      canvas.drawRect(Rect.fromLTWH(b.x, baseY, b.w, b.h), bp);
-
-      if (b.type == 1) {
-        // Dome on top
-        canvas.drawArc(
-          Rect.fromLTWH(b.x, baseY - b.w * 0.5, b.w, b.w),
-          pi, pi, false, bp,
-        );
-      } else if (b.type == 2) {
-        // Minaret tower above body
-        final tw = b.w * 0.55;
-        final tx = b.x + (b.w - tw) / 2;
-        canvas.drawRect(Rect.fromLTWH(tx, baseY - b.h * 0.7, tw, b.h * 0.7), bp);
-        // Pointed top
-        final tip = Path()
-          ..moveTo(tx, baseY - b.h * 0.7)
-          ..lineTo(tx + tw, baseY - b.h * 0.7)
-          ..lineTo(tx + tw / 2, baseY - b.h * 0.95)
+  void _drawParallaxMid(Canvas canvas) {
+    final paint = Paint()..color = _duneColor.withValues(alpha: 0.5);
+    for (final d in _midDunes) {
+      final screenX = d.x - cameraX * GameConfig.parallaxMidSpeed;
+      final wrappedX = screenX % (missionDistance + GameConfig.worldWidth) - GameConfig.worldWidth;
+      if (wrappedX > -d.width && wrappedX < GameConfig.worldWidth + d.width) {
+        final path = Path()
+          ..moveTo(wrappedX, GameConfig.groundLevel)
+          ..quadraticBezierTo(
+            wrappedX + d.width / 2,
+            GameConfig.groundLevel - d.height,
+            wrappedX + d.width,
+            GameConfig.groundLevel,
+          )
           ..close();
-        canvas.drawPath(tip, bp);
-        // Balcony ring
-        canvas.drawRect(
-          Rect.fromLTWH(tx - 2, baseY - b.h * 0.4, tw + 4, 3),
-          Paint()..color = const Color(0xFF2A1E08),
-        );
+        canvas.drawPath(path, paint);
       }
+    }
+  }
 
-      // Window light
-      if (b.hasWindow && b.w > 16) {
-        canvas.drawRRect(
-          RRect.fromRectAndRadius(
-            Rect.fromLTWH(b.x + b.w * 0.2, baseY + b.h * 0.25, 5, 7),
-            const Radius.circular(1),
+  void _drawParallaxNear(Canvas canvas) {
+    final paint = Paint()..color = _rockerColor.withValues(alpha: 0.7);
+    for (final r in _nearRocks) {
+      final screenX = r.x - cameraX * GameConfig.parallaxNearSpeed;
+      final wrappedX = screenX % (missionDistance + GameConfig.worldWidth) - GameConfig.worldWidth;
+      if (wrappedX > -r.size * 2 && wrappedX < GameConfig.worldWidth + r.size * 2) {
+        canvas.drawOval(
+          Rect.fromCenter(
+            center: Offset(wrappedX, GameConfig.groundLevel - r.size * 0.3),
+            width: r.size * 1.5,
+            height: r.size,
           ),
-          wp,
+          paint,
         );
-        if (b.w > 28) {
-          canvas.drawRRect(
-            RRect.fromRectAndRadius(
-              Rect.fromLTWH(b.x + b.w * 0.65, baseY + b.h * 0.25, 5, 7),
-              const Radius.circular(1),
-            ),
-            wp,
-          );
-        }
       }
     }
   }
 
   void _drawGround(Canvas canvas) {
-    // Sand surface band
-    canvas.drawRect(
-      const Rect.fromLTWH(0, GameConfig.groundLevel, GameConfig.worldWidth, 6),
-      Paint()..color = _sandSurface,
-    );
-    canvas.drawRect(
-      const Rect.fromLTWH(0, GameConfig.groundLevel + 6, GameConfig.worldWidth, 14),
-      Paint()..color = _sandMid,
-    );
-    // Subtle sand ripples
-    final ripple = Paint()
-      ..color = _sandSurface.withValues(alpha: 0.25)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1;
-    for (int i = 0; i < 18; i++) {
-      final y = GameConfig.groundLevel + 10 + i * 6.0;
-      if (y >= GameConfig.groundLevel + 20) break;
-      canvas.drawLine(Offset(i * 48.0, y), Offset(i * 48.0 + 28, y), ripple);
+    // Draw irregular ground polygon
+    final startX = cameraX.floor().clamp(0, _groundProfile.length - 1);
+    final endX = (cameraX + GameConfig.worldWidth).ceil().clamp(0, _groundProfile.length - 1);
+
+    final path = Path();
+    path.moveTo(0, GameConfig.groundLevel + 20); // below visible ground
+
+    for (int x = startX; x <= endX; x++) {
+      final screenX = (x - cameraX).toDouble();
+      final groundY = GameConfig.groundLevel + _groundProfile[x];
+      if (x == startX) {
+        path.moveTo(screenX, groundY);
+      } else {
+        path.lineTo(screenX, groundY);
+      }
     }
+
+    // Close the path at the bottom
+    path.lineTo(endX - cameraX, GameConfig.undergroundL1Top);
+    path.lineTo(0, GameConfig.undergroundL1Top);
+    path.close();
+
+    // Draw with sand gradient
+    final r = Rect.fromLTWH(0, GameConfig.groundLevel - 30, GameConfig.worldWidth, 80);
+    canvas.drawPath(
+      path,
+      Paint()
+        ..shader = LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: const [_sandSurface, _sandMid],
+        ).createShader(r),
+    );
+
+    // Surface line
+    final surfacePaint = Paint()
+      ..color = _sandSurface
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2;
+
+    final surfacePath = Path();
+    for (int x = startX; x <= endX; x++) {
+      final screenX = (x - cameraX).toDouble();
+      final groundY = GameConfig.groundLevel + _groundProfile[x];
+      if (x == startX) {
+        surfacePath.moveTo(screenX, groundY);
+      } else {
+        surfacePath.lineTo(screenX, groundY);
+      }
+    }
+    canvas.drawPath(surfacePath, surfacePaint);
   }
 
-  void _drawUnderground(Canvas canvas) {
+  void _drawUndergroundL1(Canvas canvas) {
     final r = Rect.fromLTWH(
       0,
-      GameConfig.groundLevel + 20,
+      GameConfig.undergroundL1Top,
       GameConfig.worldWidth,
-      GameConfig.worldHeight - GameConfig.groundLevel - 20,
+      GameConfig.undergroundL1Bottom - GameConfig.undergroundL1Top,
     );
     canvas.drawRect(
       r,
@@ -206,38 +273,86 @@ class TerrainComponent extends Component {
         ..shader = LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: const [_sandMid, _rockDeep],
+          colors: const [_sandMid, _rockL1],
         ).createShader(r),
     );
-    // Geological strata lines
-    final strata = Paint()
-      ..color = Colors.black.withValues(alpha: 0.18)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.5;
-    for (final dy in [38.0, 70.0]) {
-      canvas.drawLine(
-        Offset(0, GameConfig.groundLevel + dy),
-        Offset(GameConfig.worldWidth, GameConfig.groundLevel + dy),
-        strata,
+
+    // Strata line separating L1 from L2
+    canvas.drawLine(
+      Offset(0, GameConfig.undergroundL1Bottom),
+      Offset(GameConfig.worldWidth, GameConfig.undergroundL1Bottom),
+      Paint()
+        ..color = Colors.black.withValues(alpha: 0.3)
+        ..strokeWidth = 2,
+    );
+  }
+
+  void _drawUndergroundL2(Canvas canvas) {
+    final r = Rect.fromLTWH(
+      0,
+      GameConfig.undergroundL2Top,
+      GameConfig.worldWidth,
+      GameConfig.undergroundL2Bottom - GameConfig.undergroundL2Top,
+    );
+    canvas.drawRect(
+      r,
+      Paint()
+        ..shader = LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: const [_rockL1, _rockL2],
+        ).createShader(r),
+    );
+  }
+
+  void _drawCraters(Canvas canvas) {
+    for (final c in _craters) {
+      final screenX = c.cx - cameraX;
+      if (screenX < -c.radius || screenX > GameConfig.worldWidth + c.radius) continue;
+
+      final groundY = groundLevelAt(c.cx);
+
+      // Crater shadow
+      canvas.drawOval(
+        Rect.fromCenter(
+          center: Offset(screenX, groundY),
+          width: c.radius * 2,
+          height: c.radius * 0.6,
+        ),
+        Paint()..color = Colors.black.withValues(alpha: 0.5),
+      );
+
+      // Scorch marks
+      canvas.drawOval(
+        Rect.fromCenter(
+          center: Offset(screenX, groundY),
+          width: c.radius * 2.5,
+          height: c.radius * 0.8,
+        ),
+        Paint()
+          ..color = const Color(0xFF3A2A10).withValues(alpha: 0.3)
+          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4),
       );
     }
   }
 }
 
-class _Dune {
-  const _Dune({required this.cx, required this.w, required this.h});
-  final double cx, w, h;
+class _ParallaxMountain {
+  const _ParallaxMountain({required this.x, required this.width, required this.height});
+  final double x, width, height;
 }
 
-class _Building {
-  const _Building({
-    required this.x,
-    required this.w,
-    required this.h,
-    required this.type,
-    required this.hasWindow,
-  });
-  final double x, w, h;
-  final int type;       // 0=flat roof, 1=domed, 2=minaret
-  final bool hasWindow;
+class _ParallaxDune {
+  const _ParallaxDune({required this.x, required this.width, required this.height});
+  final double x, width, height;
+}
+
+class _ParallaxRock {
+  const _ParallaxRock({required this.x, required this.size});
+  final double x, size;
+}
+
+class _Crater {
+  const _Crater({required this.cx, required this.radius});
+  final double cx, radius;
 }

@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../game/managers/save_manager.dart';
-import '../../models/aircraft_data.dart';
 import 'game_screen.dart';
 
 /// Pre-mission briefing screen with conflict narrative and character cards.
@@ -12,11 +11,9 @@ class MissionBriefingScreen extends StatelessWidget {
   const MissionBriefingScreen({
     super.key,
     required this.saveManager,
-    required this.selectedAircraft,
   });
 
   final SaveManager saveManager;
-  final AircraftData selectedAircraft;
 
   static const List<_MissionInfo> _missions = [
     _MissionInfo(
@@ -101,7 +98,7 @@ class MissionBriefingScreen extends StatelessWidget {
                 const SizedBox(height: 12),
                 _buildThreatRow(mission),
                 const SizedBox(height: 12),
-                _buildSection('APPAREIL ASSIGNÉ', selectedAircraft.name),
+                _buildSection('APPAREIL ASSIGNÉ', 'Desert Strike — Escadron de 4 avions'),
                 const SizedBox(height: 16),
                 _buildIntelNote(),
                 const SizedBox(height: 20),
@@ -262,7 +259,7 @@ class MissionBriefingScreen extends StatelessWidget {
           const SizedBox(width: 8),
           Expanded(
             child: Text(
-              'Les Sites Fortifiés ne peuvent être détruits que par le GBU-28 Bunker Buster du B-21 Raider.',
+              'Les Bunkers Renforcés (L2) ne peuvent être détruits que par le GBU-57 du B-2 Spirit.',
               style: GoogleFonts.orbitron(
                   fontSize: 9, color: Colors.white54, letterSpacing: 0.5),
             ),
@@ -288,7 +285,6 @@ class MissionBriefingScreen extends StatelessWidget {
           MaterialPageRoute(
             builder: (_) => GameScreen(
               saveManager: saveManager,
-              selectedAircraft: selectedAircraft,
             ),
           ),
         ),

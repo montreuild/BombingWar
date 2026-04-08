@@ -2,9 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../game/managers/save_manager.dart';
-import '../../models/aircraft_data.dart';
 import '../widgets/ad_banner_widget.dart';
-import 'hangar_screen.dart';
 import 'mission_briefing_screen.dart';
 
 class MainMenuScreen extends StatelessWidget {
@@ -46,7 +44,7 @@ class MainMenuScreen extends StatelessWidget {
 
   Widget _buildTitle() {
     return Text(
-      'BOMBING WAR',
+      'DESERT STRIKE',
       style: GoogleFonts.orbitron(
         fontSize: 36,
         fontWeight: FontWeight.w900,
@@ -64,7 +62,7 @@ class MainMenuScreen extends StatelessWidget {
     return Column(
       children: [
         Text(
-          'OPÉRATION : EPIC COLLAPSE',
+          'MOBILE',
           style: GoogleFonts.orbitron(
             fontSize: 11,
             color: const Color(0xFFFF8844),
@@ -73,7 +71,7 @@ class MainMenuScreen extends StatelessWidget {
         ),
         const SizedBox(height: 6),
         Text(
-          'ALLIANCE OCCIDENTALE  ✦  CONFLIT DU GOLFE',
+          '4 AVIONS • NIVEAUX INFINIS • DRONES',
           style: GoogleFonts.orbitron(
             fontSize: 9,
             color: Colors.white24,
@@ -86,7 +84,7 @@ class MainMenuScreen extends StatelessWidget {
 
   Widget _buildHighScore() {
     return Text(
-      'HIGH SCORE: ${saveManager.progress.highScore}',
+      'HIGH SCORE: \$${saveManager.progress.highScore}',
       style: GoogleFonts.orbitron(
         fontSize: 14,
         color: const Color(0xFFFFCC44),
@@ -100,20 +98,9 @@ class MainMenuScreen extends StatelessWidget {
       child: Column(
         children: [
           _MenuButton(
-            label: 'PLAY MISSION',
+            label: 'LANCER LA MISSION',
             color: const Color(0xFFFFB800),
             onTap: () => _startGame(context),
-          ),
-          const SizedBox(height: 16),
-          _MenuButton(
-            label: 'HANGAR',
-            color: const Color(0xFF44AAFF),
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) => HangarScreen(saveManager: saveManager),
-              ),
-            ),
           ),
           const SizedBox(height: 16),
           _MenuButton(
@@ -127,18 +114,11 @@ class MainMenuScreen extends StatelessWidget {
   }
 
   void _startGame(BuildContext context) {
-    // Use the last selected aircraft or default to interceptor
-    final selectedId = saveManager.progress.unlockedAircraftIds.last;
-    final aircraft = AircraftData.all.firstWhere(
-      (a) => a.id == selectedId,
-      orElse: () => AircraftData.interceptor,
-    );
     Navigator.push(
       context,
       MaterialPageRoute(
         builder: (_) => MissionBriefingScreen(
           saveManager: saveManager,
-          selectedAircraft: aircraft,
         ),
       ),
     );
@@ -156,7 +136,7 @@ class MainMenuScreen extends StatelessWidget {
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            _leaderboardRow(1, 'YOU', saveManager.progress.highScore),
+            _leaderboardRow(1, 'VOUS', saveManager.progress.highScore),
             const Divider(color: Colors.white24),
             _leaderboardRow(2, 'FANTÔME', 8500),
             _leaderboardRow(3, 'VIPÈRE', 7200),
@@ -166,7 +146,7 @@ class MainMenuScreen extends StatelessWidget {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text('CLOSE',
+            child: Text('FERMER',
                 style: GoogleFonts.orbitron(color: Colors.white54)),
           ),
         ],
@@ -190,7 +170,7 @@ class MainMenuScreen extends StatelessWidget {
                 style:
                     const TextStyle(color: Colors.white, fontSize: 14)),
           ),
-          Text('$score pts',
+          Text('\$$score',
               style: const TextStyle(
                   color: Color(0xFFFFCC44), fontSize: 14)),
         ],
@@ -202,7 +182,7 @@ class MainMenuScreen extends StatelessWidget {
     return const Padding(
       padding: EdgeInsets.only(bottom: 8),
       child: Text(
-        'v1.0.0',
+        'v2.0.0 — Desert Strike Mobile',
         style: TextStyle(color: Colors.white24, fontSize: 10),
       ),
     );

@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../game/managers/save_manager.dart';
-import '../../models/aircraft_data.dart';
 import '../widgets/ad_banner_widget.dart';
 import 'game_screen.dart';
 
@@ -60,13 +59,13 @@ class GameOverScreen extends StatelessWidget {
                             ),
                           ),
                         const SizedBox(height: 40),
-                        _statRow('SCORE', '$score', const Color(0xFFFFCC44)),
+                        _statRow('SCORE', '\$$score', const Color(0xFFFFCC44)),
                         const SizedBox(height: 12),
                         _statRow('REACHED LEVEL', '$level', Colors.white70),
                         const SizedBox(height: 12),
                         _statRow(
                           'HIGH SCORE',
-                          '${saveManager.progress.highScore}',
+                          '\$${saveManager.progress.highScore}',
                           const Color(0xFFFFB800),
                         ),
                         const SizedBox(height: 48),
@@ -75,18 +74,11 @@ class GameOverScreen extends StatelessWidget {
                           'RETRY',
                           const Color(0xFFFF4444),
                           () {
-                            final aircraft = AircraftData.all.firstWhere(
-                              (a) =>
-                                  a.id ==
-                                  saveManager.progress.unlockedAircraftIds.last,
-                              orElse: () => AircraftData.interceptor,
-                            );
                             Navigator.pushReplacement(
                               context,
                               MaterialPageRoute(
                                 builder: (_) => GameScreen(
                                   saveManager: saveManager,
-                                  selectedAircraft: aircraft,
                                 ),
                               ),
                             );
@@ -95,7 +87,7 @@ class GameOverScreen extends StatelessWidget {
                         const SizedBox(height: 16),
                         _buildButton(
                           context,
-                          'MAIN MENU',
+                          'MENU PRINCIPAL',
                           Colors.white38,
                           () =>
                               Navigator.of(context).popUntil((r) => r.isFirst),

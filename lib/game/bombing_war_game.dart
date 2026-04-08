@@ -1,54 +1,60 @@
-import 'package:flame/effects.dart';
 import 'dart:math' as math;
+import 'package:flame/effects.dart';
 import 'package:flame/events.dart';
 import 'package:flame/game.dart';
+import 'package:flame/components.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../config/game_config.dart';
-import '../models/aircraft_data.dart';
+import '../models/enemy_data.dart';
+import '../models/level_data.dart';
 import 'components/aircraft/aircraft_component.dart';
-import 'components/aircraft/heavy_bomber_component.dart';
-import 'components/aircraft/interceptor_component.dart';
-import 'components/aircraft/stealth_component.dart';
 import 'components/effects/explosion_effect.dart';
 import 'components/environment/starfield_component.dart';
 import 'components/effects/crater_component.dart';
 import 'components/effects/debris_component.dart';
+import 'components/enemies/enemy_component.dart';
+import 'components/enemies/radar_component.dart';
+import 'components/enemies/reinforced_bunker_l2_component.dart';
+import 'components/enemies/soldier_component.dart';
+import 'components/enemies/rocket_launcher_component.dart';
+import 'components/enemies/armed_jeep_component.dart';
+import 'components/enemies/drone_launcher_component.dart';
+import 'components/enemies/fortification_component.dart';
+import 'components/enemies/oil_well_component.dart';
+import 'components/enemies/power_plant_component.dart';
+import 'components/enemies/bunker_l1_component.dart';
+import 'components/enemies/missile_factory_component.dart';
 import 'components/rescue/jeep_component.dart';
 import 'components/rescue/pilot_component.dart';
-import 'components/rescue/rescue_helicopter_component.dart';
 import 'components/environment/terrain_component.dart';
 import 'components/hud/hud_component.dart';
 import 'components/hud/joystick_component.dart';
 import 'components/hud/weapon_button_component.dart';
 import 'managers/audio_manager.dart';
+import 'managers/cutscene_manager.dart';
 import 'managers/game_manager.dart';
 import 'managers/level_manager.dart';
 import 'managers/save_manager.dart';
 import 'systems/collision_system.dart';
 import 'systems/score_system.dart';
-import 'systems/threat_system.dart';
-import 'systems/wave_system.dart';
 
 class BombingWarGame extends FlameGame with KeyboardEvents {
   BombingWarGame({
     required this.saveManager,
-    required this.selectedAircraftData,
   });
 
   final SaveManager saveManager;
-  final AircraftData selectedAircraftData;
 
-  // Managers — initialized in onLoad
+  // Managers
   late final GameManager gameManager;
   late final LevelManager levelManager;
   late final AudioManager audioManager;
+  CutsceneManager? _cutsceneManager;
 
   // Systems
   late final ScoreSystem scoreSystem;
-  late final ThreatSystem threatSystem;
-  late final WaveSystem waveSystem;
   late final CollisionSystem collisionSystem;
 
   // Core components
@@ -56,35 +62,61 @@ class BombingWarGame extends FlameGame with KeyboardEvents {
   HudComponent? hud;
   JoystickComponent? joystick;
   WeaponButtonComponent? weaponButtons;
+  TerrainComponent? terrain;
 
-  // Squadron & Rescue Management
-  int aircraftLosses = 0;
-  final List<AircraftData> squadronQueue = [];
+  // Mission state
+  int _missionLives = GameConfig.planesPerMission;
+  bool _gbuAvailable = true;
   bool isRescueMissionActive = false;
+  PilotComponent? activePilot;
+  int _activeDroneCount = 0;
+  int _totalEnemies = 0;
+  bool _pilotCaptured = false;
+
+  // Camera / scrolling
+  double cameraX = 0.0;
+  double _missionDistance = GameConfig.baseMissionDistance;
+
+  // Active radar list
+  final List<RadarComponent> _activeRadars = [];
+
+  // Getters for HUD
+  int get missionLives => _missionLives;
+  bool get gbuAvailable => _gbuAvailable;
+  int get totalEnemies => _totalEnemies;
+  double get missionProgress =>
+      playerAircraft != null ? playerAircraft!.position.x / _missionDistance : 0.0;
 
   // Flutter-layer callbacks
   VoidCallback? onGameOver;
-  void Function(int score, int coins)? onLevelComplete;
+  void Function(MissionReport report)? onLevelComplete;
 
   final Set<LogicalKeyboardKey> _pressedKeys = {};
-
-  // Shake effect properties
   double _shakeTimer = 0.0;
   double _shakeIntensity = 0.0;
 
   @override
-  KeyEventResult onKeyEvent(KeyEvent event, Set<LogicalKeyboardKey> keysPressed) {
+  KeyEventResult onKeyEvent(
+      KeyEvent event, Set<LogicalKeyboardKey> keysPressed) {
     final isKeyDown = event is KeyDownEvent || event is KeyRepeatEvent;
 
     if (isKeyDown) {
       if (event.logicalKey == LogicalKeyboardKey.space) {
         playerAircraft?.fireWeapon();
-      } else if (event.logicalKey == LogicalKeyboardKey.keyE ||
-          event.logicalKey == LogicalKeyboardKey.shiftLeft) {
-        playerAircraft?.activateSpecial();
       } else if (event.logicalKey == LogicalKeyboardKey.keyQ ||
           event.logicalKey == LogicalKeyboardKey.tab) {
         playerAircraft?.cycleWeapon();
+      } else if (event.logicalKey == LogicalKeyboardKey.digit1) {
+        playerAircraft?.selectWeapon(0); // Canon
+        playerAircraft?.fireWeapon();
+      } else if (event.logicalKey == LogicalKeyboardKey.digit2) {
+        playerAircraft?.selectWeapon(1); // Missile
+        playerAircraft?.fireWeapon();
+      } else if (event.logicalKey == LogicalKeyboardKey.digit3) {
+        playerAircraft?.selectWeapon(2); // Bomb
+        playerAircraft?.fireWeapon();
+      } else if (event.logicalKey == LogicalKeyboardKey.keyG) {
+        triggerGBU57();
       }
     }
 
@@ -125,55 +157,131 @@ class BombingWarGame extends FlameGame with KeyboardEvents {
     camera.viewfinder.visibleGameSize =
         Vector2(GameConfig.worldWidth, GameConfig.worldHeight);
 
-    // Initialize Squadron
-    for (int i = 0; i < 4; i++) {
-      squadronQueue.add(selectedAircraftData);
-    }
-
     audioManager = AudioManager();
     levelManager = LevelManager();
     gameManager = GameManager();
     scoreSystem = ScoreSystem();
-    threatSystem = ThreatSystem();
     collisionSystem = CollisionSystem(game: this);
-    waveSystem = WaveSystem(game: this);
 
     levelManager.setLevel(saveManager.progress.currentLevel);
+    final level = levelManager.currentLevel;
+    _missionDistance = level.missionDistance;
+    _totalEnemies = level.totalEnemies;
+    _missionLives = GameConfig.planesPerMission;
+    _gbuAvailable = true;
 
-    await add(TerrainComponent()); // Background — must be added first (renders behind everything)
+    // Terrain with Perlin noise
+    terrain = TerrainComponent(
+      terrainSeed: level.terrainSeed,
+      missionDistance: _missionDistance,
+    );
+    await add(terrain!);
     await add(StarfieldComponent());
+
+    // Spawn all enemies
+    _spawnEnemiesFromLevel(level);
+
+    // Spawn player
     await _spawnPlayer();
     await _buildHud();
 
     gameManager.setState(GameState.playing);
-    waveSystem.startLevel(levelManager.currentLevel);
-
-    // Fire and forget — gracefully silences audio errors if files are absent
     audioManager.playMusic('bgm.mp3').catchError((_) {});
   }
 
-  Future<void> _spawnPlayer() async {
-    if (squadronQueue.isEmpty) return;
-    final data = squadronQueue.removeAt(0);
-    playerAircraft = _createAircraft(data);
-    playerAircraft!.position = Vector2(
-      GameConfig.worldWidth * 0.1, // Start on the left
-      GameConfig.groundLevel * 0.5, // Midway in the sky
-    );
-    await add(playerAircraft!);
+  void _spawnEnemiesFromLevel(LevelConfig level) {
+    // Surface enemies
+    for (final spawn in level.surfaceEnemies) {
+      final enemy = _createEnemy(spawn.type, Vector2(spawn.xPosition, GameConfig.groundLevel - GameConfig.surfaceEnemyYOffset));
+      if (enemy != null) {
+        enemy.onDefeated = () => _onEnemyKilled(spawn.type);
+        add(enemy);
+      }
+    }
+
+    // Underground L1
+    for (final spawn in level.undergroundL1Enemies) {
+      final y = (GameConfig.undergroundL1Top + GameConfig.undergroundL1Bottom) / 2;
+      final enemy = _createEnemy(spawn.type, Vector2(spawn.xPosition, y));
+      if (enemy != null) {
+        enemy.onDefeated = () => _onEnemyKilled(spawn.type);
+        add(enemy);
+      }
+    }
+
+    // Underground L2
+    for (final spawn in level.undergroundL2Enemies) {
+      final y = (GameConfig.undergroundL2Top + GameConfig.undergroundL2Bottom) / 2;
+      final enemy = _createEnemy(spawn.type, Vector2(spawn.xPosition, y));
+      if (enemy != null) {
+        enemy.onDefeated = () => _onEnemyKilled(spawn.type);
+        add(enemy);
+      }
+    }
+
+    // Bonus targets
+    for (final spawn in level.bonusTargets) {
+      final enemy = _createEnemy(spawn.type, Vector2(spawn.xPosition, GameConfig.groundLevel - GameConfig.surfaceEnemyYOffset));
+      if (enemy != null) {
+        enemy.onDefeated = () => _onEnemyKilled(spawn.type);
+        add(enemy);
+        // Track active radars
+        if (enemy is RadarComponent) {
+          _activeRadars.add(enemy);
+        }
+      }
+    }
   }
 
-  AircraftComponent _createAircraft(AircraftData data) {
-    switch (data.id) {
-      case 'interceptor':
-        return InterceptorComponent(data: data, game: this);
-      case 'heavy_bomber':
-        return HeavyBomberComponent(data: data, game: this);
-      case 'stealth_x26':
-        return StealthComponent(data: data, game: this);
-      default:
-        return InterceptorComponent(data: data, game: this);
+  EnemyComponent? _createEnemy(EnemyType type, Vector2 pos) {
+    switch (type) {
+      case EnemyType.soldier:
+        return SoldierComponent(game: this, position: pos);
+      case EnemyType.rocketLauncher:
+        return RocketLauncherComponent(game: this, position: pos);
+      case EnemyType.jeep:
+        return ArmedJeepComponent(game: this, position: pos);
+      case EnemyType.droneLauncher:
+        return DroneLauncherComponent(game: this, position: pos);
+      case EnemyType.radar:
+        return RadarComponent(game: this, position: pos);
+      case EnemyType.fortification:
+        return FortificationComponent(game: this, position: pos);
+      case EnemyType.oilWell:
+        return OilWellComponent(game: this, position: pos);
+      case EnemyType.powerPlant:
+        return PowerPlantComponent(game: this, position: pos);
+      case EnemyType.bunkerL1:
+        return BunkerL1Component(game: this, position: pos);
+      case EnemyType.missileFactory:
+        return MissileFactoryComponent(game: this, position: pos);
+      case EnemyType.reinforcedBunkerL2:
+        return ReinforcedBunkerL2Component(game: this, position: pos);
+      case EnemyType.drone:
+        return null; // Drones are spawned by drone launchers
     }
+  }
+
+  void _onEnemyKilled(EnemyType type) {
+    scoreSystem.addKill(type);
+
+    // Check victory condition continuously
+    if (_totalEnemies > 0 &&
+        scoreSystem.enemiesKilled / _totalEnemies >= GameConfig.victoryThreshold) {
+      _triggerLevelComplete();
+    }
+  }
+
+  Future<void> _spawnPlayer() async {
+    if (_missionLives <= 0) return;
+    _missionLives--;
+    final aircraft = AircraftComponent(game: this);
+    aircraft.position = Vector2(
+      GameConfig.worldWidth * 0.1,
+      GameConfig.groundLevel * 0.5,
+    );
+    playerAircraft = aircraft;
+    await add(aircraft);
   }
 
   Future<void> _buildHud() async {
@@ -192,73 +300,68 @@ class BombingWarGame extends FlameGame with KeyboardEvents {
     super.update(dt);
 
     _updateShake(dt);
-
     collisionSystem.update(dt);
     scoreSystem.update(dt);
-    threatSystem.update(dt, isStealthActive: playerAircraft?.isCloaked ?? false);
-    waveSystem.update(dt);
 
-    // Feed movement to player aircraft each frame
-    if (playerAircraft != null) {
+    // Player movement
+    if (playerAircraft != null && playerAircraft!.isAlive) {
       final kbDir = _getKeyboardDirection();
       if (!kbDir.isZero()) {
         playerAircraft!.applyMovement(kbDir, dt);
       } else if (joystick != null) {
         playerAircraft!.applyMovement(joystick!.direction, dt);
       }
+
+      // Update camera (horizontal scroll following player)
+      cameraX = playerAircraft!.position.x - GameConfig.worldWidth * 0.3;
+      cameraX = cameraX.clamp(0, _missionDistance - GameConfig.worldWidth);
+      terrain?.cameraX = cameraX;
     }
 
-    // Trigger barrage if threat bar is full
-    threatSystem.checkBarrage(triggerMissileBarrage);
-
-    // Update HUD threat bar
-    hud?.updateThreat(threatSystem.threatPercent);
+    // Update active drone count for HUD
+    hud?.updateActiveDrones(_activeDroneCount);
 
     _checkConditions();
   }
 
   void _checkConditions() {
-    if (isRescueMissionActive) return; // Wait for rescue result
+    if (isRescueMissionActive) return;
+    if (_pilotCaptured) return;
 
     if (playerAircraft == null || playerAircraft!.isRemoved) {
-      if (squadronQueue.isNotEmpty && aircraftLosses < GameConfig.maxLossesPerMission) {
+      if (_missionLives > 0) {
         _spawnPlayer();
       } else {
         _triggerGameOver();
       }
-      return;
-    }
-    if (waveSystem.isLevelComplete) {
-      _triggerLevelComplete();
     }
   }
 
+  // ---------------------------------------------------------------------------
+  // Aircraft destroyed / Pilot ejection
+  // ---------------------------------------------------------------------------
+
   void onAircraftDestroyed(Vector2 pos, bool wasEjected) {
-    aircraftLosses++;
+    scoreSystem.registerPlaneLost();
     playerAircraft = null;
     audioManager.playMayday().catchError((_) {});
 
     if (wasEjected) {
       isRescueMissionActive = true;
+      scoreSystem.registerPilotEjected();
       audioManager.playPilotEjected().catchError((_) {});
-      final pilot = PilotComponent(position: pos, game: this);
-      add(pilot);
-      
-      // Schedule helicopter arrival
-      Future.delayed(const Duration(seconds: 10), () {
-        if (isRescueMissionActive) {
-          audioManager.playRescueArrived().catchError((_) {});
-          add(RescueHelicopterComponent(game: this)..position = Vector2(-50, 50));
-        }
-      });
-      
-      // Spawn initial threat
-      add(JeepComponent(position: Vector2(GameConfig.worldWidth + 50, GameConfig.groundLevel - 10), game: this));
+      activePilot = PilotComponent(position: pos, game: this);
+      add(activePilot!);
+
+      // Spawn a jeep to hunt the pilot
+      add(JeepComponent(
+          position: Vector2(GameConfig.worldWidth + 50, GameConfig.groundLevel - GameConfig.surfaceEnemyYOffset),
+          game: this));
     } else {
-      // No ejection, just try to spawn next plane if available
-      if (squadronQueue.isNotEmpty && aircraftLosses < GameConfig.maxLossesPerMission) {
+      // No ejection — try next plane
+      if (_missionLives > 0) {
         _spawnPlayer();
-      } else if (aircraftLosses >= GameConfig.maxLossesPerMission) {
+      } else {
         _triggerGameOver();
       }
     }
@@ -266,38 +369,180 @@ class BombingWarGame extends FlameGame with KeyboardEvents {
 
   void onPilotKilled() {
     isRescueMissionActive = false;
+    activePilot = null;
+    _pilotCaptured = true;
     _triggerGameOver();
   }
 
-  void onPilotRescued() {
+  void onPilotSurvived() {
     isRescueMissionActive = false;
-    scoreSystem.addBonus(GameConfig.pilotRescueBonus);
-    if (squadronQueue.isNotEmpty && aircraftLosses < GameConfig.maxLossesPerMission) {
+    activePilot = null;
+    scoreSystem.registerPilotSurvived();
+    if (_missionLives > 0) {
       _spawnPlayer();
     } else {
       _triggerGameOver();
     }
   }
 
-  void onAircraftOutOfAmmo() {
-    if (playerAircraft == null) return;
-    
-    // Make the current aircraft fly away to the right
-    final oldAircraft = playerAircraft!;
-    oldAircraft.add(MoveByEffect(
-      Vector2(GameConfig.worldWidth, -50),
-      EffectController(duration: 2.0, curve: Curves.easeIn),
-      onComplete: () => oldAircraft.removeFromParent(),
-    ));
-    playerAircraft = null;
+  // ---------------------------------------------------------------------------
+  // GBU-57 Cutscene
+  // ---------------------------------------------------------------------------
 
-    if (squadronQueue.isNotEmpty) {
-      _spawnPlayer();
-    } else {
-      // Out of planes and out of ammo? Level might be failed if objectives not met
-      // but usually we'll have enough.
+  void triggerGBU57() {
+    if (!_gbuAvailable) return;
+    if (playerAircraft == null) return;
+
+    _gbuAvailable = false;
+
+    // Find nearest reinforced bunker L2 as target
+    final target = _findNearestReinforcedBunker();
+    final targetPos = target?.position ?? playerAircraft!.position;
+
+    _cutsceneManager = CutsceneManager(
+      game: this,
+      targetPosition: targetPos,
+      onComplete: () {
+        _cutsceneManager?.removeFromParent();
+        _cutsceneManager = null;
+      },
+    );
+    add(_cutsceneManager!);
+    _cutsceneManager!.startCutscene();
+  }
+
+  ReinforcedBunkerL2Component? _findNearestReinforcedBunker() {
+    ReinforcedBunkerL2Component? nearest;
+    double bestDist = double.infinity;
+    for (final child in children) {
+      if (child is ReinforcedBunkerL2Component && child.isAlive) {
+        final dist = child.position.distanceTo(playerAircraft!.position);
+        if (dist < bestDist) {
+          bestDist = dist;
+          nearest = child;
+        }
+      }
+    }
+    return nearest;
+  }
+
+  void destroyReinforcedBunkerAt(Vector2 target) {
+    for (final child in children.toList()) {
+      if (child is ReinforcedBunkerL2Component &&
+          child.isAlive &&
+          child.position.distanceTo(target) < 50) {
+        child.takeDamage(GameConfig.gbuDamage, isGBU: true);
+        break;
+      }
     }
   }
+
+  void staggerSurfaceEnemiesNear(double worldX) {
+    for (final child in children) {
+      if (child is EnemyComponent &&
+          child.position.y <= GameConfig.groundLevel &&
+          (child.position.x - worldX).abs() < GameConfig.gbuExplosionRadius) {
+        // Stagger animation only, no damage
+        // Visual feedback: brief flash
+      }
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Radar & Power Plant mechanics
+  // ---------------------------------------------------------------------------
+
+  bool isEnemyRadarAlerted(EnemyComponent enemy) {
+    for (final radar in _activeRadars) {
+      if (radar.isAlive && radar.isInRange(enemy)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  void onRadarDestroyed(RadarComponent radar) {
+    _activeRadars.remove(radar);
+  }
+
+  void onPowerPlantDestroyed(Vector2 pos, double radius) {
+    // Blind all enemies in radius
+    for (final child in children) {
+      if (child is EnemyComponent &&
+          child.position.distanceTo(pos) <= radius) {
+        child.isBlinded = true;
+        // Reset after duration
+        Future.delayed(
+            Duration(
+                seconds: GameConfig.powerPlantBlackoutDuration.round()), () {
+          if (child.isMounted) {
+            child.isBlinded = false;
+          }
+        });
+      }
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Drone tracking
+  // ---------------------------------------------------------------------------
+
+  void onDroneLaunched() {
+    _activeDroneCount++;
+  }
+
+  void onDroneIntercepted() {
+    _activeDroneCount = math.max(0, _activeDroneCount - 1);
+  }
+
+  void onDroneEscaped() {
+    _activeDroneCount = math.max(0, _activeDroneCount - 1);
+    scoreSystem.registerDroneEscaped();
+  }
+
+  // ---------------------------------------------------------------------------
+  // Enemy finder (for pilot auto-pistol)
+  // ---------------------------------------------------------------------------
+
+  EnemyComponent? findNearestEnemyInRange(Vector2 pos, double range) {
+    EnemyComponent? nearest;
+    double bestDist = range;
+    for (final child in children) {
+      if (child is EnemyComponent && child.isAlive) {
+        final dist = child.position.distanceTo(pos);
+        if (dist < bestDist) {
+          bestDist = dist;
+          nearest = child;
+        }
+      }
+    }
+    return nearest;
+  }
+
+  // ---------------------------------------------------------------------------
+  // Score feedback
+  // ---------------------------------------------------------------------------
+
+  void showFeedback(String text, Vector2 pos) {
+    // Add visual floating text (handled by HUD via score feedback queue)
+    scoreSystem.feedbackQueue.add(
+      ScoreFeedback(text: text, isPenalty: true),
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // Persistent fire (oil well destruction)
+  // ---------------------------------------------------------------------------
+
+  void spawnPersistentFire(Vector2 pos) {
+    // Spawn fire + smoke particles at position
+    spawnExplosion(pos, radius: 30.0);
+    // Additional fire effect could be added here
+  }
+
+  // ---------------------------------------------------------------------------
+  // Conditions
+  // ---------------------------------------------------------------------------
 
   void _triggerGameOver() {
     if (gameManager.state == GameState.gameOver) return;
@@ -310,31 +555,31 @@ class BombingWarGame extends FlameGame with KeyboardEvents {
     if (gameManager.state == GameState.levelComplete) return;
     gameManager.setState(GameState.levelComplete);
 
-    final missionScore = scoreSystem.sessionScore;
-    final coins = saveManager.progress.missionCoins(missionScore);
+    // Compute end-of-mission bonuses
+    final remainingAmmo = playerAircraft?.totalRemainingAmmo ?? 0;
+    scoreSystem.computeAmmoBonus(remainingAmmo);
+    scoreSystem.computePerfectBonus(_totalEnemies);
 
-    saveManager.progress.addScore(missionScore);
-    saveManager.progress.coins += coins;
+    final report = scoreSystem.buildReport(_totalEnemies);
+
+    // Save progress
+    saveManager.progress.addScore(report.dollarNet);
     saveManager.progress.currentLevel++;
-
     saveManager.save();
+
     audioManager.playLevelComplete().catchError((_) {});
-    onLevelComplete?.call(missionScore, coins);
+    onLevelComplete?.call(report);
   }
 
-  /// Called by threat system when barrage threshold is reached.
-  void triggerMissileBarrage() {
-    waveSystem.spawnBarrage();
-    audioManager.playThreatBarrage().catchError((_) {});
-  }
+  // ---------------------------------------------------------------------------
+  // Effects
+  // ---------------------------------------------------------------------------
 
-  /// Add an explosion visual effect at [pos].
   void spawnExplosion(Vector2 pos, {double radius = 40.0}) {
     add(ExplosionEffect(position: pos.clone(), radius: radius));
     audioManager.playExplosion().catchError((_) {});
     shakeScreen(intensity: radius / 10.0);
 
-    // Spawn debris
     final rng = math.Random();
     for (int i = 0; i < 8; i++) {
       add(DebrisComponent(
@@ -347,9 +592,12 @@ class BombingWarGame extends FlameGame with KeyboardEvents {
       ));
     }
 
-    // Spawn crater if near ground
+    // Crater on ground
     if ((pos.y - GameConfig.groundLevel).abs() < 20) {
-      add(CraterComponent(position: Vector2(pos.x, GameConfig.groundLevel), radius: radius * 0.5));
+      add(CraterComponent(
+          position: Vector2(pos.x, GameConfig.groundLevel),
+          radius: radius * 0.5));
+      terrain?.addCrater(pos.x, GameConfig.craterRadius);
     }
   }
 
@@ -361,18 +609,14 @@ class BombingWarGame extends FlameGame with KeyboardEvents {
   void _updateShake(double dt) {
     if (_shakeTimer > 0) {
       _shakeTimer -= dt;
-      final shakeX = (math.Random().nextDouble() - 0.5) * 2 * _shakeIntensity;
-      final shakeY = (math.Random().nextDouble() - 0.5) * 2 * _shakeIntensity;
+      final shakeX =
+          (math.Random().nextDouble() - 0.5) * 2 * _shakeIntensity;
+      final shakeY =
+          (math.Random().nextDouble() - 0.5) * 2 * _shakeIntensity;
       camera.viewfinder.position = Vector2(shakeX, shakeY);
     } else {
       camera.viewfinder.position = Vector2.zero();
     }
-  }
-
-  /// Notify score system of a kill and update HUD.
-  void registerKill(int scoreValue) {
-    scoreSystem.addKill(scoreValue);
-    hud?.updateScore(scoreSystem.sessionScore);
   }
 
   void pauseGame() {
