@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../../game/bombing_war_game.dart';
 import '../../game/managers/save_manager.dart';
-import '../../models/aircraft_data.dart';
+import '../../models/level_data.dart';
 import 'game_over_screen.dart';
 import 'level_complete_screen.dart';
 
@@ -12,11 +12,9 @@ class GameScreen extends StatefulWidget {
   const GameScreen({
     super.key,
     required this.saveManager,
-    required this.selectedAircraft,
   });
 
   final SaveManager saveManager;
-  final AircraftData selectedAircraft;
 
   @override
   State<GameScreen> createState() => _GameScreenState();
@@ -30,7 +28,6 @@ class _GameScreenState extends State<GameScreen> {
     super.initState();
     _game = BombingWarGame(
       saveManager: widget.saveManager,
-      selectedAircraftData: widget.selectedAircraft,
     );
 
     _game.onGameOver = _handleGameOver;
@@ -39,14 +36,13 @@ class _GameScreenState extends State<GameScreen> {
 
   void _handleGameOver() {
     if (!mounted) return;
-    // Use addPostFrameCallback so we don't navigate during the game loop
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
           builder: (_) => GameOverScreen(
-            score: _game.scoreSystem.sessionScore,
+            score: _game.scoreSystem.dollarNet,
             level: widget.saveManager.progress.currentLevel,
             saveManager: widget.saveManager,
           ),
@@ -55,7 +51,7 @@ class _GameScreenState extends State<GameScreen> {
     });
   }
 
-  void _handleLevelComplete(int score, int coins) {
+  void _handleLevelComplete(MissionReport report) {
     if (!mounted) return;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
@@ -63,11 +59,9 @@ class _GameScreenState extends State<GameScreen> {
         context,
         MaterialPageRoute(
           builder: (_) => LevelCompleteScreen(
-            score: score,
-            coins: coins,
+            report: report,
             level: widget.saveManager.progress.currentLevel - 1,
             saveManager: widget.saveManager,
-            selectedAircraft: widget.selectedAircraft,
           ),
         ),
       );
