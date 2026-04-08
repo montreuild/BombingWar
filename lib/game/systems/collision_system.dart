@@ -44,13 +44,10 @@ class CollisionSystem {
           enemy.position,
           enemy.hitRadius,
         )) {
-          final killed = enemy.takeDamage(
+          enemy.takeDamage(
             projectile.damage,
-            isPenetrator: projectile.isPenetrator,
+            isGBU: projectile.isPenetrator,
           );
-          if (killed) {
-            game.registerKill(enemy.scoreValue);
-          }
 
           // Area-of-effect for bombs
           if (projectile.explosionRadius > 0) {
@@ -59,7 +56,7 @@ class CollisionSystem {
               projectile.explosionRadius,
               projectile.damage,
               enemy,
-              isPenetrator: projectile.isPenetrator,
+              isGBU: projectile.isPenetrator,
             );
           }
 
@@ -107,7 +104,7 @@ class CollisionSystem {
         projectile.explosionRadius,
         projectile.damage,
         null, // No primary target
-        isPenetrator: projectile.isPenetrator,
+        isGBU: projectile.isPenetrator,
       );
       game.spawnExplosion(projectile.position, radius: projectile.explosionRadius);
     }
@@ -119,7 +116,7 @@ class CollisionSystem {
     double radius,
     double damage,
     EnemyComponent? primary, {
-    bool isPenetrator = false,
+    bool isGBU = false,
   }) {
     final enemies = game.children
         .whereType<EnemyComponent>()
@@ -130,11 +127,10 @@ class CollisionSystem {
       final dist = _dist(center, enemy.position);
       if (dist <= radius) {
         final falloff = 1.0 - (dist / radius);
-        final killed = enemy.takeDamage(
+        enemy.takeDamage(
           damage * falloff,
-          isPenetrator: isPenetrator,
+          isGBU: isGBU,
         );
-        if (killed) game.registerKill(enemy.scoreValue);
       }
     }
   }
