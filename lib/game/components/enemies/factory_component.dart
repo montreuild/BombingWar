@@ -61,7 +61,6 @@ class FactoryComponent extends EnemyComponent {
   @override
   void onRender(Canvas canvas) {
     final pulse = ((_pulseTimer * 2).remainder(1.0));
-    final double alpha = 1.0;
 
     // 1. Underground Foundation (Deeper base)
     final foundationPaint = Paint()
