@@ -6,10 +6,10 @@ import '../../config/game_config.dart';
 import '../../models/enemy_data.dart';
 import '../../models/level_data.dart';
 import '../bombing_war_game.dart';
-import '../components/enemies/bunker_component.dart';
-import '../components/enemies/factory_component.dart';
-import '../components/enemies/infantry_component.dart';
-import '../components/enemies/rpg_unit_component.dart';
+import '../components/enemies/bunker_l1_component.dart';
+import '../components/enemies/missile_factory_component.dart';
+import '../components/enemies/rocket_launcher_component.dart';
+import '../components/enemies/soldier_component.dart';
 
 /// Handles procedural enemy wave spawning.
 class WaveSystem {
@@ -17,8 +17,7 @@ class WaveSystem {
 
   final BombingWarGame game;
 
-  LevelData? _level;
-  int _currentWave = 0;
+  LevelConfig? _level;
   int _spawnIndex = 0;
   double _spawnTimer = 0.0;
   bool _levelComplete = false;
@@ -26,16 +25,26 @@ class WaveSystem {
   bool _factorySpawned = false;
   final _rng = Random();
 
+  /// Combined flat list of all enemies to spawn, built in [startLevel].
+  List<EnemySpawnData> _allSpawns = [];
+
   bool get isLevelComplete => _levelComplete;
 
-  void startLevel(LevelData level) {
+  void startLevel(LevelConfig level) {
     _level = level;
-    _currentWave = 0;
     _spawnIndex = 0;
     _spawnTimer = 0.0;
     _levelComplete = false;
     _activeEnemies = 0;
     _factorySpawned = false;
+
+    // Combine all spawn lists into a single ordered sequence.
+    _allSpawns = [
+      ...level.surfaceEnemies,
+      ...level.undergroundL1Enemies,
+      ...level.undergroundL2Enemies,
+      ...level.bonusTargets,
+    ];
   }
 
   void update(double dt) {
@@ -44,68 +53,63 @@ class WaveSystem {
     _spawnTimer -= dt;
     if (_spawnTimer > 0) return;
 
-    final waves = _level!.waves;
-
-    if (_currentWave >= waves.length) {
-      // All waves spawned; wait for remaining enemies to be cleared
+    if (_spawnIndex >= _allSpawns.length) {
       if (_activeEnemies <= 0) {
         _levelComplete = true;
       }
       return;
     }
 
-    final wave = waves[_currentWave];
-    if (_spawnIndex < wave.enemyTypes.length) {
-      _spawnEnemy(wave.enemyTypes[_spawnIndex]);
-      _spawnIndex++;
-      _spawnTimer = wave.spawnInterval;
-    } else {
-      // Advance to next wave when current wave is fully spawned
-      _currentWave++;
-      _spawnIndex = 0;
-    }
+    _spawnEnemy(_allSpawns[_spawnIndex]);
+    _spawnIndex++;
+    _spawnTimer = GameConfig.defaultSpawnInterval;
 
-    // Spawn factory once when waves start if level has one
-    if (_level!.hasFactory && !_factorySpawned && _currentWave == 1) {
+    // Spawn factory once when the second enemy is queued
+    final hasFactory = _level!.undergroundL1Enemies
+        .any((s) => s.type == EnemyType.missileFactory);
+    if (hasFactory && !_factorySpawned && _spawnIndex == 2) {
       _spawnFactory();
       _factorySpawned = true;
     }
   }
 
   Vector2 _randomSpawnPosition(EnemyType type) {
-    // Ground units (Infantry, RPG, Bunker) spawn on the ground line
-    // Factories are deep in the underground
     final x = GameConfig.spawnMargin +
         _rng.nextDouble() * (GameConfig.worldWidth - GameConfig.spawnMargin * 2);
-    
-    if (type == EnemyType.factory) {
+
+    if (type == EnemyType.missileFactory) {
       return Vector2(x, GameConfig.groundLevel + 50);
     }
-    
-    // Position on the ground line
+
     return Vector2(x, GameConfig.groundLevel - 10);
   }
 
-  void _spawnEnemy(EnemyType type) {
-    final pos = _randomSpawnPosition(type);
-    switch (type) {
-      case EnemyType.infantry:
-        final e = InfantryComponent(game: game, position: pos);
+  void _spawnEnemy(EnemySpawnData spawn) {
+    final pos = spawn.yPosition != null
+        ? Vector2(spawn.xPosition, spawn.yPosition!)
+        : _randomSpawnPosition(spawn.type);
+
+    switch (spawn.type) {
+      case EnemyType.soldier:
+        final e = SoldierComponent(game: game, position: pos);
         e.onDefeated = _onEnemyDefeated;
         game.add(e);
         _activeEnemies++;
-      case EnemyType.rpgUnit:
-        final e = RpgUnitComponent(game: game, position: pos);
+      case EnemyType.rocketLauncher:
+        final e = RocketLauncherComponent(game: game, position: pos);
         e.onDefeated = _onEnemyDefeated;
         game.add(e);
         _activeEnemies++;
-      case EnemyType.bunker:
-        final e = BunkerComponent(game: game, position: pos);
+      case EnemyType.bunkerL1:
+        final e = BunkerL1Component(game: game, position: pos);
         e.onDefeated = _onEnemyDefeated;
         game.add(e);
         _activeEnemies++;
-      case EnemyType.factory:
+      case EnemyType.missileFactory:
         _spawnFactory(pos);
+      default:
+        // Other types not handled by wave system
+        break;
     }
   }
 
@@ -123,17 +127,18 @@ class WaveSystem {
   void _spawnBarrageMissile() {
     final y = _rng.nextDouble() * GameConfig.skyHeight;
     final pos = Vector2(GameConfig.worldWidth + 50, y);
-    // Barrage units are basically RPG trucks that move in from the side
-    final e = RpgUnitComponent(game: game, position: pos);
+    // Barrage units are rocket launcher trucks that move in from the side
+    final e = RocketLauncherComponent(game: game, position: pos);
     game.add(e);
   }
 
   void _spawnFactory([Vector2? pos]) {
-    final spawnPos = pos ?? Vector2(
-      GameConfig.worldWidth * 0.8,
-      GameConfig.groundLevel + 40,
-    );
-    final e = FactoryComponent(game: game, position: spawnPos);
+    final spawnPos = pos ??
+        Vector2(
+          GameConfig.worldWidth * 0.8,
+          GameConfig.groundLevel + 40,
+        );
+    final e = MissileFactoryComponent(game: game, position: spawnPos);
     e.onDefeated = _onEnemyDefeated;
     game.add(e);
     _activeEnemies++;

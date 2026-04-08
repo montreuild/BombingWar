@@ -374,6 +374,8 @@ class BombingWarGame extends FlameGame with KeyboardEvents {
     _triggerGameOver();
   }
 
+  void onPilotRescued() => onPilotSurvived();
+
   void onPilotSurvived() {
     isRescueMissionActive = false;
     activePilot = null;
