@@ -93,17 +93,17 @@ class WaveSystem {
       case EnemyType.soldier:
         final e = SoldierComponent(game: game, position: pos);
         e.onDefeated = _onEnemyDefeated;
-        game.add(e);
+        game.addToWorld(e);
         _activeEnemies++;
       case EnemyType.rocketLauncher:
         final e = RocketLauncherComponent(game: game, position: pos);
         e.onDefeated = _onEnemyDefeated;
-        game.add(e);
+        game.addToWorld(e);
         _activeEnemies++;
       case EnemyType.bunkerL1:
         final e = BunkerL1Component(game: game, position: pos);
         e.onDefeated = _onEnemyDefeated;
-        game.add(e);
+        game.addToWorld(e);
         _activeEnemies++;
       case EnemyType.missileFactory:
         _spawnFactory(pos);
@@ -129,7 +129,7 @@ class WaveSystem {
     final pos = Vector2(GameConfig.worldWidth + 50, y);
     // Barrage units are rocket launcher trucks that move in from the side
     final e = RocketLauncherComponent(game: game, position: pos);
-    game.add(e);
+    game.addToWorld(e);
   }
 
   void _spawnFactory([Vector2? pos]) {
@@ -140,7 +140,7 @@ class WaveSystem {
         );
     final e = MissileFactoryComponent(game: game, position: spawnPos);
     e.onDefeated = _onEnemyDefeated;
-    game.add(e);
+    game.addToWorld(e);
     _activeEnemies++;
   }
 }

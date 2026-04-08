@@ -20,12 +20,12 @@ class CollisionSystem {
   }
 
   void _checkProjectilesVsEnemies() {
-    final projectiles = game.children
+    final projectiles = game.worldChildren
         .whereType<ProjectileComponent>()
         .where((p) => p.isPlayerProjectile && !p.isRemoved)
         .toList();
 
-    final enemies = game.children
+    final enemies = game.worldChildren
         .whereType<EnemyComponent>()
         .where((e) => !e.isRemoved && e.isAlive)
         .toList();
@@ -76,7 +76,7 @@ class CollisionSystem {
     final player = game.playerAircraft;
     if (player == null || player.isRemoved || player.isInvincible) return;
 
-    final enemyProjectiles = game.children
+    final enemyProjectiles = game.worldChildren
         .whereType<ProjectileComponent>()
         .where((p) => !p.isPlayerProjectile && !p.isRemoved)
         .toList();
@@ -116,7 +116,7 @@ class CollisionSystem {
     EnemyComponent? primary, {
     bool isGBU = false,
   }) {
-    final enemies = game.children
+    final enemies = game.worldChildren
         .whereType<EnemyComponent>()
         .where((e) => !e.isRemoved && e.isAlive && (primary == null || e != primary))
         .toList();

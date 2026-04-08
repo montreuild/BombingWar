@@ -55,7 +55,7 @@ class ArmedJeepComponent extends EnemyComponent {
 
   void _fire() {
     final dir = Vector2(math.cos(_turretAngle), math.sin(_turretAngle));
-    game.add(BulletComponent(
+    game.addToWorld(BulletComponent(
       position: position.clone() + Vector2(0, -8),
       direction: dir,
       damage: GameConfig.jeepDamage,

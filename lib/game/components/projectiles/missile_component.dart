@@ -42,7 +42,7 @@ class MissileComponent extends ProjectileComponent {
     if (isPlayerProjectile) {
       // Player missile targets nearest enemy
       double best = double.infinity;
-      for (final child in game.children) {
+      for (final child in game.worldChildren) {
         if (child is EnemyComponent && child.isAlive && !child.isRemoved) {
           final dist = position.distanceTo(child.position);
           if (dist < best) {

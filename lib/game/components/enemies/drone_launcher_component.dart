@@ -55,7 +55,7 @@ class DroneLauncherComponent extends EnemyComponent {
   void _launchDrones() {
     final count = dronesPerWave.clamp(1, GameConfig.maxDronesPerWave);
     for (int i = 0; i < count; i++) {
-      game.add(DroneComponent(
+      game.addToWorld(DroneComponent(
         game: game,
         position: position.clone() + Vector2(i * 15.0, -10.0 - i * 5.0),
       ));

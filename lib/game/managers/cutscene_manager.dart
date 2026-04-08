@@ -48,7 +48,9 @@ class CutsceneManager extends Component {
     _elapsed = 0.0;
     _bombDropped = false;
     _impactDone = false;
-    _b2X = -100.0;
+    // _b2X is in WORLD coordinates; start 100 units to the left of the
+    // current camera view and fly right across the screen.
+    _b2X = game.cameraX - 100.0;
     _b2Y = 40.0;
     _fadeAlpha = 0.0;
     _gbuVisible = false;
@@ -68,7 +70,7 @@ class CutsceneManager extends Component {
     else if (_elapsed < 2.5) {
       _b2X += GameConfig.b2SpiritSpeed * dt;
 
-      // Drop bomb at center of screen
+      // Drop bomb when the B-2 passes over the target's world X position.
       if (!_bombDropped && _b2X >= targetPosition.x) {
         _bombDropped = true;
         _gbuVisible = true;

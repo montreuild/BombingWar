@@ -51,9 +51,11 @@ class DroneComponent extends EnemyComponent {
       position.x += GameConfig.droneSpeed * dt;
     }
 
-    // Check if escaped screen
-    if (position.x > game.cameraX + GameConfig.worldWidth + GameConfig.despawnMargin ||
-        position.x < game.cameraX - GameConfig.despawnMargin) {
+    // Drones that leave the camera far to either side are considered
+    // escaped (no penalty stacking — onDroneEscaped tracks it).
+    final camX = game.cameraX;
+    if (position.x > camX + GameConfig.worldWidth + GameConfig.despawnMargin ||
+        position.x < camX - GameConfig.despawnMargin * 2) {
       game.onDroneEscaped();
       removeFromParent();
     }
