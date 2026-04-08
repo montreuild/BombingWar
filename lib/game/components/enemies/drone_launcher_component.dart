@@ -1,4 +1,3 @@
-import 'dart:math' as math;
 import 'package:flame/components.dart';
 import 'package:flutter/material.dart';
 
@@ -14,12 +13,10 @@ enum DroneLauncherState { idle, armed, launching, cooldown }
 
 class DroneLauncherComponent extends EnemyComponent {
   DroneLauncherComponent({
-    required BombingWarGame game,
-    required Vector2 position,
+    required super.game,
+    required super.position,
     this.dronesPerWave = 1,
   }) : super(
-          game: game,
-          position: position,
           enemyData: EnemyData.droneLauncher,
         );
 

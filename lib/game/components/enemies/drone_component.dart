@@ -12,11 +12,9 @@ import '../../bombing_war_game.dart';
 /// Can also target ejected pilot.
 class DroneComponent extends EnemyComponent {
   DroneComponent({
-    required BombingWarGame game,
-    required Vector2 position,
+    required super.game,
+    required super.position,
   }) : super(
-          game: game,
-          position: position,
           enemyData: EnemyData.drone,
         );
 

@@ -58,7 +58,7 @@ class CutsceneManager extends Component {
   void update(double dt) {
     if (!_isActive) return;
     _elapsed += dt;
-    final totalDuration = GameConfig.cutsceneDuration;
+    const totalDuration = GameConfig.cutsceneDuration;
 
     // Phase 1: Fade in (0 - 0.5s)
     if (_elapsed < 0.5) {
@@ -121,7 +121,7 @@ class CutsceneManager extends Component {
     // Fade overlay
     if (_fadeAlpha > 0) {
       canvas.drawRect(
-        Rect.fromLTWH(0, 0, GameConfig.worldWidth, GameConfig.worldHeight),
+        const Rect.fromLTWH(0, 0, GameConfig.worldWidth, GameConfig.worldHeight),
         Paint()..color = Colors.black.withValues(alpha: _fadeAlpha),
       );
     }
@@ -139,7 +139,7 @@ class CutsceneManager extends Component {
     // Impact flash
     if (_impactDone && _elapsed < 3.2) {
       canvas.drawRect(
-        Rect.fromLTWH(0, 0, GameConfig.worldWidth, GameConfig.worldHeight),
+        const Rect.fromLTWH(0, 0, GameConfig.worldWidth, GameConfig.worldHeight),
         Paint()..color = Colors.white.withValues(alpha: 0.3),
       );
     }

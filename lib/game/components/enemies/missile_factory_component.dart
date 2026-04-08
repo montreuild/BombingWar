@@ -12,11 +12,9 @@ import '../projectiles/missile_component.dart';
 /// 5 hits to destroy. Partial destruction reduces fire rate.
 class MissileFactoryComponent extends EnemyComponent {
   MissileFactoryComponent({
-    required BombingWarGame game,
-    required Vector2 position,
+    required super.game,
+    required super.position,
   }) : super(
-          game: game,
-          position: position,
           enemyData: EnemyData.missileFactory,
         );
 

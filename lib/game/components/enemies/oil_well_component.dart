@@ -2,7 +2,6 @@ import 'dart:math' as math;
 import 'package:flame/components.dart';
 import 'package:flutter/material.dart';
 
-import '../../../config/game_config.dart';
 import '../../../models/enemy_data.dart';
 import 'enemy_component.dart';
 import '../../bombing_war_game.dart';
@@ -10,11 +9,9 @@ import '../../bombing_war_game.dart';
 /// Oil Well — bonus target, explodes with persistent fire + smoke.
 class OilWellComponent extends EnemyComponent {
   OilWellComponent({
-    required BombingWarGame game,
-    required Vector2 position,
+    required super.game,
+    required super.position,
   }) : super(
-          game: game,
-          position: position,
           enemyData: EnemyData.oilWell,
         );
 

@@ -1,8 +1,6 @@
 import 'dart:math' as math;
-import 'package:flame/effects.dart';
 import 'package:flame/events.dart';
 import 'package:flame/game.dart';
-import 'package:flame/components.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -201,7 +199,7 @@ class BombingWarGame extends FlameGame with KeyboardEvents {
 
     // Underground L1
     for (final spawn in level.undergroundL1Enemies) {
-      final y = (GameConfig.undergroundL1Top + GameConfig.undergroundL1Bottom) / 2;
+      const y = (GameConfig.undergroundL1Top + GameConfig.undergroundL1Bottom) / 2;
       final enemy = _createEnemy(spawn.type, Vector2(spawn.xPosition, y));
       if (enemy != null) {
         enemy.onDefeated = () => _onEnemyKilled(spawn.type);
@@ -211,7 +209,7 @@ class BombingWarGame extends FlameGame with KeyboardEvents {
 
     // Underground L2
     for (final spawn in level.undergroundL2Enemies) {
-      final y = (GameConfig.undergroundL2Top + GameConfig.undergroundL2Bottom) / 2;
+      const y = (GameConfig.undergroundL2Top + GameConfig.undergroundL2Bottom) / 2;
       final enemy = _createEnemy(spawn.type, Vector2(spawn.xPosition, y));
       if (enemy != null) {
         enemy.onDefeated = () => _onEnemyKilled(spawn.type);

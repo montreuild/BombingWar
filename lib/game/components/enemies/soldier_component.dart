@@ -1,4 +1,3 @@
-import 'dart:math' as math;
 import 'package:flame/components.dart';
 import 'package:flutter/material.dart';
 
@@ -11,11 +10,9 @@ import '../projectiles/bullet_component.dart';
 /// Soldier — patrols side-to-side, fires rifle at player.
 class SoldierComponent extends EnemyComponent {
   SoldierComponent({
-    required BombingWarGame game,
-    required Vector2 position,
+    required super.game,
+    required super.position,
   }) : super(
-          game: game,
-          position: position,
           enemyData: EnemyData.soldier,
         );
 

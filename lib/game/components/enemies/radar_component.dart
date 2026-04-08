@@ -12,11 +12,9 @@ import '../../bombing_war_game.dart';
 /// Destroying it = bonus target (doesn't count for 80% ratio).
 class RadarComponent extends EnemyComponent {
   RadarComponent({
-    required BombingWarGame game,
-    required Vector2 position,
+    required super.game,
+    required super.position,
   }) : super(
-          game: game,
-          position: position,
           enemyData: EnemyData.radar,
         );
 

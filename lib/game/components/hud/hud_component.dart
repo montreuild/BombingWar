@@ -1,4 +1,3 @@
-import 'dart:math' as math;
 import 'package:flame/components.dart';
 import 'package:flutter/material.dart';
 
@@ -79,7 +78,7 @@ class HudComponent extends PositionComponent {
     _drawText(
       canvas,
       scoreText,
-      Offset(GameConfig.worldWidth - pad - 100, y),
+      const Offset(GameConfig.worldWidth - pad - 100, y),
       fontSize: 16,
       color: const Color(0xFF44FF44),
     );
@@ -142,7 +141,7 @@ class HudComponent extends PositionComponent {
 
     // Background
     canvas.drawRect(
-      Rect.fromLTWH(barLeft, barY, barWidth, GameConfig.progressBarHeight),
+      const Rect.fromLTWH(barLeft, barY, barWidth, GameConfig.progressBarHeight),
       Paint()..color = Colors.white.withValues(alpha: 0.2),
     );
 
@@ -162,10 +161,10 @@ class HudComponent extends PositionComponent {
     );
 
     // Labels
-    _drawText(canvas, 'DÉPART', Offset(pad, barY - 4),
+    _drawText(canvas, 'DÉPART', const Offset(pad, barY - 4),
         fontSize: 8, color: Colors.white54);
     _drawText(
-        canvas, 'OBJECTIF', Offset(barLeft + barWidth + 4, barY - 4),
+        canvas, 'OBJECTIF', const Offset(barLeft + barWidth + 4, barY - 4),
         fontSize: 8, color: Colors.white54);
   }
 
@@ -177,7 +176,7 @@ class HudComponent extends PositionComponent {
     // Enemies destroyed / total
     final killed = game.scoreSystem.enemiesKilled;
     final total = game.totalEnemies;
-    _drawText(canvas, 'Ennemis: $killed/$total', Offset(pad, y),
+    _drawText(canvas, 'Ennemis: $killed/$total', const Offset(pad, y),
         fontSize: 11, color: Colors.white70);
 
     // Weapon name
@@ -186,7 +185,7 @@ class HudComponent extends PositionComponent {
       _drawText(
         canvas,
         weaponName,
-        Offset(GameConfig.worldWidth / 2 - 40, y),
+        const Offset(GameConfig.worldWidth / 2 - 40, y),
         fontSize: 11,
         color: const Color(0xFFAADDFF),
       );
@@ -203,7 +202,7 @@ class HudComponent extends PositionComponent {
     _drawText(
       canvas,
       '⚠ $_activeDrones drones actifs',
-      Offset(GameConfig.worldWidth - GameConfig.hudPadding - 140,
+      const Offset(GameConfig.worldWidth - GameConfig.hudPadding - 140,
           GameConfig.worldHeight - 20),
       fontSize: 11,
       color: Colors.red,
@@ -239,7 +238,7 @@ class HudComponent extends PositionComponent {
     _drawText(
       canvas,
       'x$mult COMBO!',
-      Offset(GameConfig.worldWidth / 2 - 30, 8),
+      const Offset(GameConfig.worldWidth / 2 - 30, 8),
       fontSize: 14,
       color: const Color(0xFFFFCC00),
     );
