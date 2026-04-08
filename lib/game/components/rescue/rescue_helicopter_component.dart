@@ -18,7 +18,7 @@ class RescueHelicopterComponent extends PositionComponent {
   void update(double dt) {
     super.update(dt);
     
-    final pilot = game.children.whereType<PilotComponent>().firstOrNull;
+    final pilot = game.worldChildren.whereType<PilotComponent>().firstOrNull;
     if (pilot == null) {
        // Pilot gone (killed or rescued already?), fly away
        position.x += speed * dt;

@@ -84,8 +84,15 @@ class AircraftComponent extends PositionComponent {
   void update(double dt) {
     super.update(dt);
 
-    // Apply drag
-    _velocity *= GameConfig.aircraftDrag;
+    // Frame-rate independent drag: velocity decays at a fixed rate per second.
+    // drag=0.95 per 60fps ~= 0.95^60 per second; keep similar feel via dt exp.
+    final dragFactor = math.pow(GameConfig.aircraftDrag, dt * 60.0).toDouble();
+    _velocity *= dragFactor;
+
+    // Kill tiny residual drift so the plane actually stops when no input.
+    if (_velocity.length < 2.0) {
+      _velocity.setZero();
+    }
 
     // Move
     position += _velocity * dt;
@@ -94,8 +101,7 @@ class AircraftComponent extends PositionComponent {
     if (_fireCooldown > 0) _fireCooldown -= dt;
 
     // Ground collision check
-    if (position.y >= GameConfig.groundLevel) {
-      // Crash into ground
+    if (position.y >= GameConfig.groundLevel - size.y * 0.3) {
       _health = 0;
       game.spawnExplosion(position, radius: 50.0);
       final wasEjected =
@@ -199,8 +205,11 @@ class AircraftComponent extends PositionComponent {
 
   void applyMovement(Vector2 direction, double dt) {
     if (direction.isZero()) return;
-    _velocity += direction * GameConfig.aircraftSpeed * dt;
-    // Clamp max velocity
+    // Treat input as a direct velocity target for responsive controls,
+    // then blend the previous velocity for a bit of inertia.
+    final target = direction * GameConfig.aircraftSpeed;
+    final blend = (dt * 8.0).clamp(0.0, 1.0);
+    _velocity = _velocity * (1 - blend) + target * blend;
     if (_velocity.length > GameConfig.aircraftSpeed) {
       _velocity = _velocity.normalized() * GameConfig.aircraftSpeed;
     }
@@ -208,11 +217,11 @@ class AircraftComponent extends PositionComponent {
 
   void _clampToWorld() {
     const halfSize = GameConfig.aircraftSize / 2;
+    // Clamp to horizontal mission bounds.
     position.x = position.x.clamp(halfSize, game.missionDistance - halfSize);
-    // Allow the aircraft to reach groundLevel so the crash check fires.
-    // Using worldHeight - halfSize keeps the centre within world bounds while
-    // still letting position.y exceed groundLevel (280) on the way down.
-    position.y = position.y.clamp(halfSize, GameConfig.worldHeight - halfSize);
+    // Clamp vertically inside the usable sky (don't allow flying through the
+    // HUD bars). Crash detection happens before this is called.
+    position.y = position.y.clamp(halfSize, GameConfig.groundLevel - halfSize);
   }
 
   // ---------------------------------------------------------------------------
@@ -257,10 +266,10 @@ class AircraftComponent extends PositionComponent {
   }
 
   void _spawnProjectile(WeaponData weapon) {
-    final spawnPos = position + Vector2(size.x * 0.4, size.y * 0.2);
+    final spawnPos = position + Vector2(size.x * 0.4, 0);
     switch (weapon.type) {
       case WeaponType.canon:
-        game.add(BulletComponent(
+        game.addToWorld(BulletComponent(
           position: spawnPos,
           direction: Vector2(1, 0),
           damage: weapon.damage,
@@ -268,7 +277,7 @@ class AircraftComponent extends PositionComponent {
         ));
         break;
       case WeaponType.missile:
-        game.add(MissileComponent(
+        game.addToWorld(MissileComponent(
           position: spawnPos,
           damage: weapon.damage,
           isPlayerProjectile: true,
@@ -276,7 +285,7 @@ class AircraftComponent extends PositionComponent {
         ));
         break;
       case WeaponType.bomb:
-        game.add(BombComponent(
+        game.addToWorld(BombComponent(
           position: spawnPos,
           damage: weapon.damage,
           explosionRadius: weapon.explosionRadius,

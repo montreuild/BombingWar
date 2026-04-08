@@ -1,13 +1,17 @@
 import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
 
+import '../../config/game_config.dart';
 import '../../game/bombing_war_game.dart';
 import '../../game/managers/save_manager.dart';
 import '../../models/level_data.dart';
 import 'game_over_screen.dart';
 import 'level_complete_screen.dart';
 
-/// Flutter widget that hosts the Flame game and listens for game-over/level-complete events.
+/// Flutter widget that hosts the Flame game and listens for game-over /
+/// level-complete events. Renders the 800x400 logical game inside a uniform
+/// [AspectRatio] so touches and clicks map directly to game coordinates on
+/// any device size (mobile, tablet, desktop, web).
 class GameScreen extends StatefulWidget {
   const GameScreen({
     super.key,
@@ -71,10 +75,22 @@ class _GameScreenState extends State<GameScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.black,
       body: Stack(
         children: [
-          GameWidget(game: _game),
-          _TouchOverlay(game: _game),
+          Center(
+            child: AspectRatio(
+              aspectRatio: GameConfig.worldWidth / GameConfig.worldHeight,
+              child: ClipRect(
+                child: Stack(
+                  children: [
+                    GameWidget(game: _game, autofocus: true),
+                    _TouchOverlay(game: _game),
+                  ],
+                ),
+              ),
+            ),
+          ),
           _PauseButton(game: _game),
         ],
       ),
@@ -82,36 +98,41 @@ class _GameScreenState extends State<GameScreen> {
   }
 }
 
-/// Transparent overlay that captures touch for joystick and weapon buttons.
+/// Transparent overlay that captures pointer events for joystick and weapon
+/// buttons. Lives *inside* the fitted game frame so `localPosition` can be
+/// converted to game (800x400) coordinates with a single uniform scale.
 class _TouchOverlay extends StatelessWidget {
   const _TouchOverlay({required this.game});
   final BombingWarGame game;
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      behavior: HitTestBehavior.translucent,
-      onPanStart: (d) {
-        final pos = _toWorld(d.localPosition, context);
-        game.joystick?.onPanStart(pos);
-      },
-      onPanUpdate: (d) {
-        final pos = _toWorld(d.localPosition, context);
-        game.joystick?.onPanUpdate(pos);
-      },
-      onPanEnd: (_) => game.joystick?.onPanEnd(),
-      onTapUp: (d) {
-        final pos = _toWorld(d.localPosition, context);
-        game.weaponButtons?.onTap(pos);
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final scaleX = GameConfig.worldWidth / constraints.maxWidth;
+        final scaleY = GameConfig.worldHeight / constraints.maxHeight;
+
+        Vector2 toGame(Offset local) =>
+            Vector2(local.dx * scaleX, local.dy * scaleY);
+
+        return Listener(
+          behavior: HitTestBehavior.translucent,
+          onPointerDown: (e) {
+            final pos = toGame(e.localPosition);
+            // Weapon-button tap first; joystick drag otherwise.
+            final hitButton = game.weaponButtons?.onTap(pos) ?? false;
+            if (!hitButton) {
+              game.joystick?.onPanStart(pos);
+            }
+          },
+          onPointerMove: (e) {
+            game.joystick?.onPanUpdate(toGame(e.localPosition));
+          },
+          onPointerUp: (_) => game.joystick?.onPanEnd(),
+          onPointerCancel: (_) => game.joystick?.onPanEnd(),
+        );
       },
     );
-  }
-
-  Vector2 _toWorld(Offset local, BuildContext context) {
-    final size = MediaQuery.of(context).size;
-    final scaleX = 800.0 / size.width;
-    final scaleY = 400.0 / size.height;
-    return Vector2(local.dx * scaleX, local.dy * scaleY);
   }
 }
 
@@ -150,9 +171,11 @@ class _PauseDialog extends StatelessWidget {
   Widget build(BuildContext context) {
     return AlertDialog(
       backgroundColor: const Color(0xFF1A2A1A),
-      title: const Text('PAUSED',
-          style: TextStyle(
-              color: Colors.white, fontWeight: FontWeight.bold)),
+      title: const Text(
+        'PAUSED',
+        style:
+            TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+      ),
       actions: [
         TextButton(
           onPressed: () {

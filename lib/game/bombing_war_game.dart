@@ -1,5 +1,5 @@
 import 'dart:math' as math;
-import 'package:flame/components.dart' show Anchor;
+import 'package:flame/components.dart' show Anchor, Component;
 import 'package:flame/events.dart';
 import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
@@ -27,6 +27,7 @@ import 'components/enemies/missile_factory_component.dart';
 import 'components/rescue/jeep_component.dart';
 import 'components/rescue/pilot_component.dart';
 import 'components/environment/terrain_component.dart';
+import 'components/environment/world_container.dart';
 import 'components/hud/hud_component.dart';
 import 'components/hud/joystick_component.dart';
 import 'components/hud/weapon_button_component.dart';
@@ -54,6 +55,9 @@ class BombingWarGame extends FlameGame with KeyboardEvents {
   // Systems
   late final ScoreSystem scoreSystem;
   late final CollisionSystem collisionSystem;
+
+  // Container that applies the camera scrolling transform.
+  late final WorldContainer worldContainer;
 
   // Core components
   AircraftComponent? playerAircraft;
@@ -85,7 +89,7 @@ class BombingWarGame extends FlameGame with KeyboardEvents {
   bool get gbuAvailable => _gbuAvailable;
   int get totalEnemies => _totalEnemies;
   double get missionProgress =>
-      playerAircraft != null ? playerAircraft!.position.x / _missionDistance : 0.0;
+      playerAircraft != null ? (playerAircraft!.position.x / _missionDistance).clamp(0.0, 1.0) : 0.0;
 
   // Flutter-layer callbacks
   VoidCallback? onGameOver;
@@ -94,6 +98,12 @@ class BombingWarGame extends FlameGame with KeyboardEvents {
   final Set<LogicalKeyboardKey> _pressedKeys = {};
   double _shakeTimer = 0.0;
   double _shakeIntensity = 0.0;
+
+  /// Iterable view of all world-space children (enemies, projectiles, etc).
+  Iterable<Component> get worldChildren => worldContainer.children;
+
+  /// Add a component to the scrollable world (affected by camera).
+  Future<void> addToWorld(Component component) => worldContainer.add(component);
 
   @override
   KeyEventResult onKeyEvent(
@@ -108,20 +118,25 @@ class BombingWarGame extends FlameGame with KeyboardEvents {
         playerAircraft?.cycleWeapon();
       } else if (event.logicalKey == LogicalKeyboardKey.digit1) {
         playerAircraft?.selectWeapon(0); // Canon
-        playerAircraft?.fireWeapon();
       } else if (event.logicalKey == LogicalKeyboardKey.digit2) {
         playerAircraft?.selectWeapon(1); // Missile
-        playerAircraft?.fireWeapon();
       } else if (event.logicalKey == LogicalKeyboardKey.digit3) {
         playerAircraft?.selectWeapon(2); // Bomb
-        playerAircraft?.fireWeapon();
       } else if (event.logicalKey == LogicalKeyboardKey.keyG) {
         triggerGBU57();
+      } else if (event.logicalKey == LogicalKeyboardKey.escape ||
+          event.logicalKey == LogicalKeyboardKey.keyP) {
+        if (gameManager.state == GameState.playing) {
+          pauseGame();
+        } else if (gameManager.state == GameState.paused) {
+          resumeGame();
+        }
       }
     }
 
-    _pressedKeys.clear();
-    _pressedKeys.addAll(keysPressed);
+    _pressedKeys
+      ..clear()
+      ..addAll(keysPressed);
 
     return KeyEventResult.handled;
   }
@@ -144,6 +159,7 @@ class BombingWarGame extends FlameGame with KeyboardEvents {
         _pressedKeys.contains(LogicalKeyboardKey.arrowRight)) {
       direction.x += 1;
     }
+    if (direction.isZero()) return direction;
     return direction.normalized();
   }
 
@@ -154,9 +170,12 @@ class BombingWarGame extends FlameGame with KeyboardEvents {
   Future<void> onLoad() async {
     await super.onLoad();
 
+    // Fit the 800×400 logical game area inside whatever physical size the
+    // widget is given (keeps identical gameplay on phones, tablets & desktop).
     camera.viewfinder.visibleGameSize =
         Vector2(GameConfig.worldWidth, GameConfig.worldHeight);
     camera.viewfinder.anchor = Anchor.topLeft;
+    camera.viewfinder.position = Vector2.zero();
 
     audioManager = AudioManager();
     levelManager = LevelManager();
@@ -171,18 +190,25 @@ class BombingWarGame extends FlameGame with KeyboardEvents {
     _missionLives = GameConfig.planesPerMission;
     _gbuAvailable = true;
 
-    // Terrain with Perlin noise
+    // Terrain is rendered in screen space with its own parallax scrolling.
     terrain = TerrainComponent(
       terrainSeed: level.terrainSeed,
       missionDistance: _missionDistance,
     );
+    terrain!.priority = -10;
     await add(terrain!);
 
-    // Spawn all enemies
+    // World container holds everything that scrolls with the camera.
+    worldContainer = WorldContainer();
+    await add(worldContainer);
+
+    // Spawn all enemies into the world container
     _spawnEnemiesFromLevel(level);
 
     // Spawn player
     await _spawnPlayer();
+
+    // HUD stays outside the world container (screen space).
     await _buildHud();
 
     gameManager.setState(GameState.playing);
@@ -192,10 +218,14 @@ class BombingWarGame extends FlameGame with KeyboardEvents {
   void _spawnEnemiesFromLevel(LevelConfig level) {
     // Surface enemies
     for (final spawn in level.surfaceEnemies) {
-      final enemy = _createEnemy(spawn.type, Vector2(spawn.xPosition, GameConfig.groundLevel - GameConfig.surfaceEnemyYOffset));
+      final enemy = _createEnemy(
+        spawn.type,
+        Vector2(spawn.xPosition,
+            GameConfig.groundLevel - GameConfig.surfaceEnemyYOffset),
+      );
       if (enemy != null) {
         enemy.onDefeated = () => _onEnemyKilled(spawn.type);
-        add(enemy);
+        addToWorld(enemy);
       }
     }
 
@@ -205,7 +235,7 @@ class BombingWarGame extends FlameGame with KeyboardEvents {
       final enemy = _createEnemy(spawn.type, Vector2(spawn.xPosition, y));
       if (enemy != null) {
         enemy.onDefeated = () => _onEnemyKilled(spawn.type);
-        add(enemy);
+        addToWorld(enemy);
       }
     }
 
@@ -215,17 +245,20 @@ class BombingWarGame extends FlameGame with KeyboardEvents {
       final enemy = _createEnemy(spawn.type, Vector2(spawn.xPosition, y));
       if (enemy != null) {
         enemy.onDefeated = () => _onEnemyKilled(spawn.type);
-        add(enemy);
+        addToWorld(enemy);
       }
     }
 
     // Bonus targets
     for (final spawn in level.bonusTargets) {
-      final enemy = _createEnemy(spawn.type, Vector2(spawn.xPosition, GameConfig.groundLevel - GameConfig.surfaceEnemyYOffset));
+      final enemy = _createEnemy(
+        spawn.type,
+        Vector2(spawn.xPosition,
+            GameConfig.groundLevel - GameConfig.surfaceEnemyYOffset),
+      );
       if (enemy != null) {
         enemy.onDefeated = () => _onEnemyKilled(spawn.type);
-        add(enemy);
-        // Track active radars
+        addToWorld(enemy);
         if (enemy is RadarComponent) {
           _activeRadars.add(enemy);
         }
@@ -265,9 +298,9 @@ class BombingWarGame extends FlameGame with KeyboardEvents {
   void _onEnemyKilled(EnemyType type) {
     scoreSystem.addKill(type);
 
-    // Check victory condition continuously
     if (_totalEnemies > 0 &&
-        scoreSystem.enemiesKilled / _totalEnemies >= GameConfig.victoryThreshold) {
+        scoreSystem.enemiesKilled / _totalEnemies >=
+            GameConfig.victoryThreshold) {
       _triggerLevelComplete();
     }
   }
@@ -277,11 +310,13 @@ class BombingWarGame extends FlameGame with KeyboardEvents {
     _missionLives--;
     final aircraft = AircraftComponent(game: this);
     aircraft.position = Vector2(
-      GameConfig.worldWidth * 0.1,
+      // Spawn a bit ahead of the current camera so the plane always
+      // appears near the left-third of the visible area.
+      cameraX + GameConfig.worldWidth * 0.2,
       GameConfig.groundLevel * 0.5,
     );
     playerAircraft = aircraft;
-    await add(aircraft);
+    await addToWorld(aircraft);
   }
 
   Future<void> _buildHud() async {
@@ -296,8 +331,12 @@ class BombingWarGame extends FlameGame with KeyboardEvents {
 
   @override
   void update(double dt) {
-    if (gameManager.state != GameState.playing) return;
+    // Clamp dt so a single lag spike can't teleport entities.
+    if (dt > 0.05) dt = 0.05;
+
     super.update(dt);
+
+    if (gameManager.state != GameState.playing) return;
 
     collisionSystem.update(dt);
     scoreSystem.update(dt);
@@ -307,14 +346,16 @@ class BombingWarGame extends FlameGame with KeyboardEvents {
       final kbDir = _getKeyboardDirection();
       if (!kbDir.isZero()) {
         playerAircraft!.applyMovement(kbDir, dt);
-      } else if (joystick != null) {
+      } else if (joystick != null && !joystick!.direction.isZero()) {
         playerAircraft!.applyMovement(joystick!.direction, dt);
       }
 
-      // Update camera (horizontal scroll following player)
-      cameraX = playerAircraft!.position.x - GameConfig.worldWidth * 0.3;
-      cameraX = cameraX.clamp(0, _missionDistance - GameConfig.worldWidth);
+      // Camera scrolling: keep the player near the 30% mark of the view.
+      final desiredCam =
+          playerAircraft!.position.x - GameConfig.worldWidth * 0.3;
+      cameraX = desiredCam.clamp(0, math.max(0, _missionDistance - GameConfig.worldWidth));
       terrain?.cameraX = cameraX;
+      worldContainer.cameraX = cameraX;
     }
 
     _updateShake(dt);
@@ -352,14 +393,15 @@ class BombingWarGame extends FlameGame with KeyboardEvents {
       scoreSystem.registerPilotEjected();
       audioManager.playPilotEjected().catchError((_) {});
       activePilot = PilotComponent(position: pos, game: this);
-      add(activePilot!);
+      addToWorld(activePilot!);
 
       // Spawn a jeep to hunt the pilot
-      add(JeepComponent(
-          position: Vector2(GameConfig.worldWidth + 50, GameConfig.groundLevel - GameConfig.surfaceEnemyYOffset),
+      addToWorld(JeepComponent(
+          position: Vector2(
+              cameraX + GameConfig.worldWidth + 50,
+              GameConfig.groundLevel - GameConfig.surfaceEnemyYOffset),
           game: this));
     } else {
-      // No ejection — try next plane
       if (_missionLives > 0) {
         _spawnPlayer();
       } else {
@@ -398,7 +440,6 @@ class BombingWarGame extends FlameGame with KeyboardEvents {
 
     _gbuAvailable = false;
 
-    // Find nearest reinforced bunker L2 as target
     final target = _findNearestReinforcedBunker();
     final targetPos = target?.position ?? playerAircraft!.position;
 
@@ -417,7 +458,7 @@ class BombingWarGame extends FlameGame with KeyboardEvents {
   ReinforcedBunkerL2Component? _findNearestReinforcedBunker() {
     ReinforcedBunkerL2Component? nearest;
     double bestDist = double.infinity;
-    for (final child in children) {
+    for (final child in worldChildren) {
       if (child is ReinforcedBunkerL2Component && child.isAlive) {
         final dist = child.position.distanceTo(playerAircraft!.position);
         if (dist < bestDist) {
@@ -430,7 +471,7 @@ class BombingWarGame extends FlameGame with KeyboardEvents {
   }
 
   void destroyReinforcedBunkerAt(Vector2 target) {
-    for (final child in children.toList()) {
+    for (final child in worldChildren.toList()) {
       if (child is ReinforcedBunkerL2Component &&
           child.isAlive &&
           child.position.distanceTo(target) < 50) {
@@ -441,12 +482,11 @@ class BombingWarGame extends FlameGame with KeyboardEvents {
   }
 
   void staggerSurfaceEnemiesNear(double worldX) {
-    for (final child in children) {
+    for (final child in worldChildren) {
       if (child is EnemyComponent &&
           child.position.y <= GameConfig.groundLevel &&
           (child.position.x - worldX).abs() < GameConfig.gbuExplosionRadius) {
         // Stagger animation only, no damage
-        // Visual feedback: brief flash
       }
     }
   }
@@ -469,12 +509,10 @@ class BombingWarGame extends FlameGame with KeyboardEvents {
   }
 
   void onPowerPlantDestroyed(Vector2 pos, double radius) {
-    // Blind all enemies in radius
-    for (final child in children) {
+    for (final child in worldChildren) {
       if (child is EnemyComponent &&
           child.position.distanceTo(pos) <= radius) {
         child.isBlinded = true;
-        // Reset after duration
         Future.delayed(
             Duration(
                 seconds: GameConfig.powerPlantBlackoutDuration.round()), () {
@@ -510,7 +548,7 @@ class BombingWarGame extends FlameGame with KeyboardEvents {
   EnemyComponent? findNearestEnemyInRange(Vector2 pos, double range) {
     EnemyComponent? nearest;
     double bestDist = range;
-    for (final child in children) {
+    for (final child in worldChildren) {
       if (child is EnemyComponent && child.isAlive) {
         final dist = child.position.distanceTo(pos);
         if (dist < bestDist) {
@@ -527,7 +565,6 @@ class BombingWarGame extends FlameGame with KeyboardEvents {
   // ---------------------------------------------------------------------------
 
   void showFeedback(String text, Vector2 pos) {
-    // Add visual floating text (handled by HUD via score feedback queue)
     scoreSystem.feedbackQueue.add(
       ScoreFeedback(text: text, isPenalty: true),
     );
@@ -538,9 +575,7 @@ class BombingWarGame extends FlameGame with KeyboardEvents {
   // ---------------------------------------------------------------------------
 
   void spawnPersistentFire(Vector2 pos) {
-    // Spawn fire + smoke particles at position
     spawnExplosion(pos, radius: 30.0);
-    // Additional fire effect could be added here
   }
 
   // ---------------------------------------------------------------------------
@@ -558,14 +593,12 @@ class BombingWarGame extends FlameGame with KeyboardEvents {
     if (gameManager.state == GameState.levelComplete) return;
     gameManager.setState(GameState.levelComplete);
 
-    // Compute end-of-mission bonuses
     final remainingAmmo = playerAircraft?.totalRemainingAmmo ?? 0;
     scoreSystem.computeAmmoBonus(remainingAmmo);
     scoreSystem.computePerfectBonus(_totalEnemies);
 
     final report = scoreSystem.buildReport(_totalEnemies);
 
-    // Save progress
     saveManager.progress.addScore(report.dollarNet);
     saveManager.progress.currentLevel++;
     saveManager.save();
@@ -579,13 +612,13 @@ class BombingWarGame extends FlameGame with KeyboardEvents {
   // ---------------------------------------------------------------------------
 
   void spawnExplosion(Vector2 pos, {double radius = 40.0}) {
-    add(ExplosionEffect(position: pos.clone(), radius: radius));
+    addToWorld(ExplosionEffect(position: pos.clone(), radius: radius));
     audioManager.playExplosion().catchError((_) {});
     shakeScreen(intensity: radius / 10.0);
 
     final rng = math.Random();
     for (int i = 0; i < 8; i++) {
-      add(DebrisComponent(
+      addToWorld(DebrisComponent(
         position: pos.clone(),
         color: i % 2 == 0 ? Colors.orange : Colors.grey,
         velocity: Vector2(
@@ -597,7 +630,7 @@ class BombingWarGame extends FlameGame with KeyboardEvents {
 
     // Crater on ground
     if ((pos.y - GameConfig.groundLevel).abs() < 20) {
-      add(CraterComponent(
+      addToWorld(CraterComponent(
           position: Vector2(pos.x, GameConfig.groundLevel),
           radius: radius * 0.5));
       terrain?.addCrater(pos.x, GameConfig.craterRadius);
@@ -605,20 +638,24 @@ class BombingWarGame extends FlameGame with KeyboardEvents {
   }
 
   void shakeScreen({double duration = 0.3, double intensity = 5.0}) {
-    _shakeTimer = duration;
-    _shakeIntensity = intensity;
+    _shakeTimer = math.max(_shakeTimer, duration);
+    _shakeIntensity = math.max(_shakeIntensity, intensity);
   }
 
   void _updateShake(double dt) {
     if (_shakeTimer > 0) {
       _shakeTimer -= dt;
-      final shakeX =
-          (math.Random().nextDouble() - 0.5) * 2 * _shakeIntensity;
-      final shakeY =
-          (math.Random().nextDouble() - 0.5) * 2 * _shakeIntensity;
-      camera.viewfinder.position = Vector2(cameraX + shakeX, shakeY);
+      final rnd = math.Random();
+      worldContainer.shakeX = (rnd.nextDouble() - 0.5) * 2 * _shakeIntensity;
+      worldContainer.shakeY = (rnd.nextDouble() - 0.5) * 2 * _shakeIntensity;
+      if (_shakeTimer <= 0) {
+        _shakeIntensity = 0;
+        worldContainer.shakeX = 0;
+        worldContainer.shakeY = 0;
+      }
     } else {
-      camera.viewfinder.position = Vector2(cameraX, 0.0);
+      worldContainer.shakeX = 0;
+      worldContainer.shakeY = 0;
     }
   }
 

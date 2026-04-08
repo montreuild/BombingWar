@@ -46,7 +46,7 @@ class MissileFactoryComponent extends EnemyComponent {
     final missileCount = math.max(1, 3 - _hitsTaken); // Fewer missiles when damaged
     for (int i = 0; i < missileCount; i++) {
       final offset = Vector2((i - missileCount / 2) * 15, -10);
-      game.add(MissileComponent(
+      game.addToWorld(MissileComponent(
         position: position.clone() + offset,
         damage: GameConfig.missileDamage,
         isPlayerProjectile: false,

@@ -53,7 +53,8 @@ class SoldierComponent extends EnemyComponent {
 
   void _fire() {
     final dir = directionToPlayer();
-    game.add(BulletComponent(
+    if (dir.isZero()) return;
+    game.addToWorld(BulletComponent(
       position: position.clone(),
       direction: dir,
       damage: GameConfig.soldierDamage,

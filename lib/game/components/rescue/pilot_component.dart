@@ -56,7 +56,7 @@ class PilotComponent extends PositionComponent {
     );
     if (nearestEnemy != null) {
       final dir = (nearestEnemy.position - position).normalized();
-      game.add(BulletComponent(
+      game.addToWorld(BulletComponent(
         position: position.clone(),
         direction: dir,
         damage: GameConfig.pilotPistolDamage,

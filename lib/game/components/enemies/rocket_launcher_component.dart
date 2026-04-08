@@ -24,7 +24,7 @@ class RocketLauncherComponent extends EnemyComponent {
   }
 
   void _fire() {
-    game.add(MissileComponent(
+    game.addToWorld(MissileComponent(
       position: position.clone() + Vector2(0, -5),
       damage: GameConfig.rocketLauncherDamage,
       isPlayerProjectile: false,

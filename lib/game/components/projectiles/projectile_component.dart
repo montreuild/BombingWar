@@ -32,13 +32,16 @@ abstract class ProjectileComponent extends PositionComponent {
   void update(double dt) {
     super.update(dt);
     _lifespan += dt;
-    if (_lifespan > maxLifespan) removeFromParent();
-    // Also remove if out of world bounds
-    if (position.x < -GameConfig.despawnMargin ||
-        position.x > GameConfig.worldWidth + GameConfig.despawnMargin ||
-        position.y < -GameConfig.despawnMargin ||
+    // Lifespan is the primary despawn trigger; keep a loose absolute clamp
+    // to catch anything that escapes vertically out of the world.
+    if (_lifespan > maxLifespan) {
+      removeFromParent();
+      return;
+    }
+    if (position.y < -GameConfig.despawnMargin ||
         position.y > GameConfig.worldHeight + GameConfig.despawnMargin) {
       removeFromParent();
     }
   }
 }
+

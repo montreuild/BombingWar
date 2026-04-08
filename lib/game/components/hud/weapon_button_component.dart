@@ -34,20 +34,29 @@ class WeaponButtonComponent extends PositionComponent {
         GameConfig.worldHeight - _btnSize - _pad,
       );
 
-  /// Called by game's tap handler.
-  void onTap(Vector2 worldPos) {
-    if (_hitTest(worldPos, _canonPos)) {
+  /// Called by the touch overlay. Returns `true` if the tap was consumed
+  /// by a weapon button so the caller knows not to also start the joystick.
+  bool onTap(Vector2 screenPos) {
+    if (_hitTest(screenPos, _canonPos)) {
       game.playerAircraft?.selectWeapon(0);
       game.playerAircraft?.fireWeapon();
-    } else if (_hitTest(worldPos, _missilePos)) {
+      return true;
+    }
+    if (_hitTest(screenPos, _missilePos)) {
       game.playerAircraft?.selectWeapon(1);
       game.playerAircraft?.fireWeapon();
-    } else if (_hitTest(worldPos, _bombPos)) {
+      return true;
+    }
+    if (_hitTest(screenPos, _bombPos)) {
       game.playerAircraft?.selectWeapon(2);
       game.playerAircraft?.fireWeapon();
-    } else if (_hitTest(worldPos, _gbuPos)) {
-      game.triggerGBU57();
+      return true;
     }
+    if (_hitTest(screenPos, _gbuPos)) {
+      game.triggerGBU57();
+      return true;
+    }
+    return false;
   }
 
   bool _hitTest(Vector2 tap, Vector2 btnCenter) {
