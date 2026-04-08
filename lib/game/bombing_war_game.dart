@@ -103,7 +103,7 @@ class BombingWarGame extends FlameGame with KeyboardEvents {
   Iterable<Component> get worldChildren => worldContainer.children;
 
   /// Add a component to the scrollable world (affected by camera).
-  Future<void> addToWorld(Component component) => worldContainer.add(component);
+  Future<void> addToWorld(Component component) async => worldContainer.add(component);
 
   @override
   KeyEventResult onKeyEvent(
