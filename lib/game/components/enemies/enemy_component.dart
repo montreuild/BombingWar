@@ -1,10 +1,13 @@
+import 'dart:math' as math;
 import 'package:flame/components.dart';
 import 'package:flutter/material.dart';
 
+import '../../../config/game_config.dart';
 import '../../../models/enemy_data.dart';
 import '../../bombing_war_game.dart';
 
-/// Abstract base class for all enemy units.
+/// Abstract base class for all enemy units with AI state machine.
+/// States: IDLE → ALERT → ATTACK → HUNT_PILOT
 abstract class EnemyComponent extends PositionComponent {
   EnemyComponent({
     required this.game,
@@ -21,6 +24,7 @@ abstract class EnemyComponent extends PositionComponent {
 
   late double _health;
   double fireCooldown = 0.0;
+  EnemyAIState aiState = EnemyAIState.idle;
 
   /// Callback invoked when this enemy is destroyed.
   void Function()? onDefeated;
@@ -29,8 +33,11 @@ abstract class EnemyComponent extends PositionComponent {
   double get hitRadius => enemyData.size * 0.45;
   int get scoreValue => enemyData.scoreValue;
 
-  /// Factories require a penetrator bomb to destroy.
-  bool get requiresPenetrator => false;
+  /// L2 bunkers require GBU-57 to destroy.
+  bool get requiresGBU => false;
+
+  /// Whether this enemy is blinded (power plant destroyed nearby).
+  bool isBlinded = false;
 
   @override
   Future<void> onLoad() async {
@@ -42,6 +49,10 @@ abstract class EnemyComponent extends PositionComponent {
   void update(double dt) {
     super.update(dt);
     if (fireCooldown > 0) fireCooldown -= dt;
+
+    // Update AI state based on conditions
+    _updateAIState();
+
     onUpdate(dt, fireCooldown <= 0);
   }
 
@@ -52,6 +63,46 @@ abstract class EnemyComponent extends PositionComponent {
     onRender(canvas);
   }
 
+  /// AI state machine logic.
+  void _updateAIState() {
+    if (isBlinded) {
+      aiState = EnemyAIState.idle;
+      return;
+    }
+
+    // Check if there's an ejected pilot to hunt
+    if (game.isRescueMissionActive && _canHuntPilot()) {
+      aiState = EnemyAIState.huntPilot;
+      return;
+    }
+
+    final aircraft = game.playerAircraft;
+    if (aircraft == null || !aircraft.isAlive) {
+      aiState = EnemyAIState.idle;
+      return;
+    }
+
+    final distToPlayer = position.distanceTo(aircraft.position);
+
+    if (distToPlayer <= GameConfig.enemyAttackRange) {
+      aiState = EnemyAIState.attack;
+    } else if (distToPlayer <= GameConfig.enemyDetectionRange || _isRadarAlerted()) {
+      aiState = EnemyAIState.alert;
+    } else {
+      aiState = EnemyAIState.idle;
+    }
+  }
+
+  /// Check if a nearby radar is active and alerting this enemy.
+  bool _isRadarAlerted() {
+    // Radar doubles detection range for nearby enemies
+    // Check through game's active radar list
+    return game.isEnemyRadarAlerted(this);
+  }
+
+  /// Only jeeps can hunt pilots.
+  bool _canHuntPilot() => enemyData.type == EnemyType.jeep;
+
   /// Subclasses implement their per-frame behaviour here.
   void onUpdate(double dt, bool canFire);
 
@@ -59,9 +110,13 @@ abstract class EnemyComponent extends PositionComponent {
   void onRender(Canvas canvas);
 
   /// Returns true if the enemy was killed by this hit.
-  bool takeDamage(double amount, {bool isPenetrator = false}) {
+  bool takeDamage(double amount, {bool isGBU = false}) {
     if (!isAlive) return false;
-    if (requiresPenetrator && !isPenetrator) return false; // Immune unless penetrator
+    if (requiresGBU && !isGBU) {
+      // Show "BLINDÉ" feedback
+      game.showFeedback('BLINDÉ', position);
+      return false;
+    }
 
     _health -= amount;
     if (_health <= 0) {
@@ -87,7 +142,7 @@ abstract class EnemyComponent extends PositionComponent {
   void onKilled() {}
 
   void _drawHealthBar(Canvas canvas) {
-    if (_health >= enemyData.health) return; // No bar at full health
+    if (_health >= enemyData.health) return;
     final barWidth = enemyData.size;
     const double barH = 3.0;
     const double barY = -8.0;
@@ -102,5 +157,12 @@ abstract class EnemyComponent extends PositionComponent {
           -barWidth / 2 + size.x / 2, barY, barWidth * pct, barH),
       Paint()..color = Colors.red,
     );
+  }
+
+  /// Get direction towards player aircraft.
+  Vector2 directionToPlayer() {
+    final aircraft = game.playerAircraft;
+    if (aircraft == null) return Vector2.zero();
+    return (aircraft.position - position).normalized();
   }
 }
