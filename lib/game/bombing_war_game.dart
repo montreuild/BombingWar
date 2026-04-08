@@ -192,7 +192,7 @@ class BombingWarGame extends FlameGame with KeyboardEvents {
   void _spawnEnemiesFromLevel(LevelConfig level) {
     // Surface enemies
     for (final spawn in level.surfaceEnemies) {
-      final enemy = _createEnemy(spawn.type, Vector2(spawn.xPosition, GameConfig.groundLevel - 10));
+      final enemy = _createEnemy(spawn.type, Vector2(spawn.xPosition, GameConfig.groundLevel - GameConfig.surfaceEnemyYOffset));
       if (enemy != null) {
         enemy.onDefeated = () => _onEnemyKilled(spawn.type);
         add(enemy);
@@ -221,7 +221,7 @@ class BombingWarGame extends FlameGame with KeyboardEvents {
 
     // Bonus targets
     for (final spawn in level.bonusTargets) {
-      final enemy = _createEnemy(spawn.type, Vector2(spawn.xPosition, GameConfig.groundLevel - 10));
+      final enemy = _createEnemy(spawn.type, Vector2(spawn.xPosition, GameConfig.groundLevel - GameConfig.surfaceEnemyYOffset));
       if (enemy != null) {
         enemy.onDefeated = () => _onEnemyKilled(spawn.type);
         add(enemy);
@@ -355,7 +355,7 @@ class BombingWarGame extends FlameGame with KeyboardEvents {
 
       // Spawn a jeep to hunt the pilot
       add(JeepComponent(
-          position: Vector2(GameConfig.worldWidth + 50, GameConfig.groundLevel - 10),
+          position: Vector2(GameConfig.worldWidth + 50, GameConfig.groundLevel - GameConfig.surfaceEnemyYOffset),
           game: this));
     } else {
       // No ejection — try next plane

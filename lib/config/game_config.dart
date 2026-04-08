@@ -17,6 +17,9 @@ class GameConfig {
   static const double undergroundL2Top = 370.0;
   static const double undergroundL2Bottom = 400.0;
 
+  // Enemy surface spawn Y offset (above ground level)
+  static const double surfaceEnemyYOffset = 10.0;
+
   // Parallax layer speeds (multiplier of camera speed)
   static const double parallaxFarSpeed = 0.2;
   static const double parallaxMidSpeed = 0.5;
@@ -70,7 +73,7 @@ class GameConfig {
   static const double craterRadius = 40.0;
 
   // GBU-57 (Bunker Buster)
-  static const double gbuDamage = 9999.0;
+  static const double gbuDamage = double.infinity; // Instant kill on L2 targets
   static const double gbuSpeed = 250.0;
   static const double gbuSize = 20.0;
   static const double gbuExplosionRadius = 80.0;
