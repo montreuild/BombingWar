@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'ui/screens/main_menu_screen.dart';
+
 import 'game/managers/save_manager.dart';
+import 'ui/screens/main_menu_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();

@@ -1,5 +1,6 @@
 import 'package:flame/components.dart';
 import 'package:flutter/material.dart';
+
 import '../../../config/game_config.dart';
 import '../../bombing_war_game.dart';
 
@@ -56,12 +57,12 @@ class WeaponButtonComponent extends PositionComponent {
     final rect = Rect.fromLTWH(pos.x, pos.y, _btnSize, _btnSize);
     canvas.drawRRect(
       RRect.fromRectAndRadius(rect, const Radius.circular(10)),
-      Paint()..color = color.withOpacity(0.4),
+      Paint()..color = color.withValues(alpha: 0.4),
     );
     canvas.drawRRect(
       RRect.fromRectAndRadius(rect, const Radius.circular(10)),
       Paint()
-        ..color = color.withOpacity(0.8)
+        ..color = color.withValues(alpha: 0.8)
         ..style = PaintingStyle.stroke
         ..strokeWidth = 2,
     );
@@ -73,7 +74,7 @@ class WeaponButtonComponent extends PositionComponent {
         style: TextStyle(
           fontSize: 20,
           fontWeight: FontWeight.bold,
-          color: color.withOpacity(0.9),
+          color: color.withValues(alpha: 0.9),
         ),
       ),
       textDirection: TextDirection.ltr,

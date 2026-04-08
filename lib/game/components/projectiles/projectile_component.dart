@@ -1,4 +1,5 @@
 import 'package:flame/components.dart';
+
 import '../../../config/game_config.dart';
 
 /// Base class for all projectiles.

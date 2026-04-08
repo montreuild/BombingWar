@@ -1,5 +1,5 @@
-import 'package:flame/components.dart';
 import 'package:flutter/material.dart';
+
 import '../../../config/game_config.dart';
 import 'projectile_component.dart';
 
@@ -7,20 +7,15 @@ import 'projectile_component.dart';
 /// isPenetrator = true for the Stealth X-26 penetrator bomb.
 class BombComponent extends ProjectileComponent {
   BombComponent({
-    required Vector2 position,
-    required double damage,
-    required double explosionRadius,
-    required bool isPlayerProjectile,
-    required bool isPenetrator,
+    required super.position,
+    required super.damage,
+    required super.explosionRadius,
+    required super.isPlayerProjectile,
+    required super.isPenetrator,
   })  : _verticalSpeed =
             isPlayerProjectile ? GameConfig.bombSpeed : GameConfig.bombSpeed * 0.5,
         super(
-          position: position,
-          damage: damage,
-          isPlayerProjectile: isPlayerProjectile,
           size: isPenetrator ? GameConfig.penetratorSize : GameConfig.bombSize,
-          explosionRadius: explosionRadius,
-          isPenetrator: isPenetrator,
         );
 
   double _verticalSpeed;

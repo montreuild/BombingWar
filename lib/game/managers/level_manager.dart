@@ -1,7 +1,8 @@
 import 'dart:math';
+
 import '../../config/game_config.dart';
-import '../../models/level_data.dart';
 import '../../models/enemy_data.dart';
+import '../../models/level_data.dart';
 
 /// Generates infinite levels procedurally from a level number.
 class LevelManager {

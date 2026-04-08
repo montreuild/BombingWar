@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
+
 import '../../../config/game_config.dart';
-import '../../../models/aircraft_data.dart';
-import '../../bombing_war_game.dart';
 import 'aircraft_component.dart';
 
 /// Fast interceptor aircraft.

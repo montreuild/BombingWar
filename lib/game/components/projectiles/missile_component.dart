@@ -1,23 +1,21 @@
 import 'dart:math';
+
 import 'package:flame/components.dart';
 import 'package:flutter/material.dart';
+
 import '../../../config/game_config.dart';
 import '../../bombing_war_game.dart';
 import '../enemies/enemy_component.dart';
-import '../aircraft/aircraft_component.dart';
 import 'projectile_component.dart';
 
 /// Homing missile — steers toward the nearest valid target each frame.
 class MissileComponent extends ProjectileComponent {
   MissileComponent({
-    required Vector2 position,
-    required double damage,
-    required bool isPlayerProjectile,
+    required super.position,
+    required super.damage,
+    required super.isPlayerProjectile,
     required this.game,
   }) : super(
-          position: position,
-          damage: damage,
-          isPlayerProjectile: isPlayerProjectile,
           size: GameConfig.missileSize,
         );
 
@@ -74,8 +72,12 @@ class MissileComponent extends ProjectileComponent {
     final targetAngle = atan2(to.y, to.x);
     var diff = targetAngle - currentAngle;
     // Wrap to [-pi, pi]
-    while (diff > pi) diff -= 2 * pi;
-    while (diff < -pi) diff += 2 * pi;
+    while (diff > pi) {
+      diff -= 2 * pi;
+    }
+    while (diff < -pi) {
+      diff += 2 * pi;
+    }
     final clamped = diff.clamp(-maxAngle, maxAngle);
     final newAngle = currentAngle + clamped;
     return Vector2(cos(newAngle), sin(newAngle));
@@ -102,7 +104,7 @@ class MissileComponent extends ProjectileComponent {
       Offset(size.x / 2, size.y * 0.85),
       3,
       Paint()
-        ..color = const Color(0xFFFF6600).withOpacity(0.8)
+        ..color = const Color(0xFFFF6600).withValues(alpha: 0.8)
         ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 3),
     );
   }

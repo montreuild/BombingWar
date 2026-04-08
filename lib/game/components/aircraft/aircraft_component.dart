@@ -1,12 +1,13 @@
 import 'package:flame/components.dart';
 import 'package:flutter/material.dart';
+
 import '../../../config/game_config.dart';
 import '../../../models/aircraft_data.dart';
 import '../../../models/weapon_data.dart';
 import '../../bombing_war_game.dart';
+import '../projectiles/bomb_component.dart';
 import '../projectiles/bullet_component.dart';
 import '../projectiles/missile_component.dart';
-import '../projectiles/bomb_component.dart';
 
 /// Base class for all player-controlled aircraft.
 abstract class AircraftComponent extends PositionComponent {
@@ -77,10 +78,45 @@ abstract class AircraftComponent extends PositionComponent {
 
   void _renderBody(Canvas canvas) {
     final alpha = isCloaked ? 0.35 : 1.0;
+
+    // Drop shadow
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        Rect.fromCenter(
+          center: Offset(size.x / 2 + 4, size.y / 2 + 6),
+          width: size.x * 0.4,
+          height: size.y * 0.8),
+        const Radius.circular(4),
+      ),
+      Paint()..color = Colors.black.withValues(alpha: 0.3 * alpha),
+    );
+
     final bodyPaint = Paint()
-      ..color = bodyColor.withOpacity(alpha);
+      ..shader = LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: [
+          bodyColor.withValues(alpha: alpha),
+          bodyColor.withValues(alpha: 0.7 * alpha),
+        ],
+      ).createShader(Rect.fromLTWH(0, 0, size.x, size.y));
+
     final wingPaint = Paint()
-      ..color = wingColor.withOpacity(alpha);
+      ..color = wingColor.withValues(alpha: alpha);
+
+    // Wings with depth
+    final wingPath = Path()
+      ..moveTo(size.x * 0.5, size.y * 0.4)
+      ..lineTo(0, size.y * 0.7)
+      ..lineTo(size.x * 0.35, size.y * 0.55)
+      ..close()
+      ..moveTo(size.x * 0.5, size.y * 0.4)
+      ..lineTo(size.x, size.y * 0.7)
+      ..lineTo(size.x * 0.65, size.y * 0.55)
+      ..close();
+    
+    canvas.drawPath(wingPath, wingPaint);
+    canvas.drawPath(wingPath, Paint()..color = Colors.black12..style = PaintingStyle.stroke..strokeWidth = 1);
 
     // Fuselage
     canvas.drawRRect(
@@ -94,33 +130,29 @@ abstract class AircraftComponent extends PositionComponent {
       bodyPaint,
     );
 
-    // Left wing
-    canvas.drawPath(
-      Path()
-        ..moveTo(size.x * 0.5, size.y * 0.4)
-        ..lineTo(0, size.y * 0.7)
-        ..lineTo(size.x * 0.35, size.y * 0.55)
-        ..close(),
-      wingPaint,
+    // Cockpit highlight
+    canvas.drawOval(
+      Rect.fromCenter(
+        center: Offset(size.x / 2, size.y * 0.35),
+        width: size.x * 0.15,
+        height: size.y * 0.2,
+      ),
+      Paint()..color = Colors.lightBlueAccent.withValues(alpha: 0.6 * alpha),
     );
 
-    // Right wing
-    canvas.drawPath(
-      Path()
-        ..moveTo(size.x * 0.5, size.y * 0.4)
-        ..lineTo(size.x, size.y * 0.7)
-        ..lineTo(size.x * 0.65, size.y * 0.55)
-        ..close(),
-      wingPaint,
-    );
-
-    // Engine glow
+    // Engine glow - Animated
+    final pulse = 0.8 + (0.2 * (DateTime.now().millisecondsSinceEpoch % 1000 / 1000));
     canvas.drawCircle(
       Offset(size.x / 2, size.y * 0.88),
-      4,
+      5 * pulse,
       Paint()
-        ..color = const Color(0xFFFF6600).withOpacity(0.8 * alpha)
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4),
+        ..color = const Color(0xFFFF6600).withValues(alpha: 0.9 * alpha)
+        ..maskFilter = MaskFilter.blur(BlurStyle.normal, 6 * pulse),
+    );
+    canvas.drawCircle(
+      Offset(size.x / 2, size.y * 0.88),
+      2,
+      Paint()..color = Colors.white.withValues(alpha: 0.8 * alpha),
     );
   }
 

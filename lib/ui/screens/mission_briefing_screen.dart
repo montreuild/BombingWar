@@ -1,6 +1,8 @@
 import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+
 import '../../game/managers/save_manager.dart';
 import '../../models/aircraft_data.dart';
 import 'game_screen.dart';
@@ -119,7 +121,7 @@ class MissionBriefingScreen extends StatelessWidget {
   Widget _buildCharacterRow(_MissionInfo mission) {
     return Row(
       children: [
-        Expanded(child: _WesternLeaderCard()),
+        const Expanded(child: _WesternLeaderCard()),
         const SizedBox(width: 12),
         Expanded(
           child: mission.vsGuard
@@ -251,7 +253,7 @@ class MissionBriefingScreen extends StatelessWidget {
       decoration: BoxDecoration(
         border: Border.all(color: Colors.white12),
         borderRadius: BorderRadius.circular(6),
-        color: Colors.white.withOpacity(0.03),
+        color: Colors.white.withValues(alpha: 0.03),
       ),
       child: Row(
         children: [
@@ -313,7 +315,7 @@ class _WesternLeaderCard extends StatelessWidget {
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
         color: const Color(0xFF0A1E30),
-        border: Border.all(color: const Color(0xFF44AAFF).withOpacity(0.4)),
+        border: Border.all(color: const Color(0xFF44AAFF).withValues(alpha: 0.4)),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Column(
@@ -331,7 +333,7 @@ class _WesternLeaderCard extends StatelessWidget {
               color: const Color(0xFF1A3A55),
               borderRadius: BorderRadius.circular(6),
               border:
-                  Border.all(color: const Color(0xFF44AAFF).withOpacity(0.3)),
+                  Border.all(color: const Color(0xFF44AAFF).withValues(alpha: 0.3)),
             ),
             child: Text(
               '"God Bless Me!"',
@@ -445,7 +447,7 @@ class _WesternLeaderPainter extends CustomPainter {
     final eyeWhitePaint = Paint()..color = Colors.white;
     final eyePaint = Paint()..color = const Color(0xFF3A8FE8);
     final pupilPaint = Paint()..color = Colors.black;
-    for (final dx in [-6.0, 6.0]) {
+    for (final double dx in [-6.0, 6.0]) {
       canvas.drawCircle(
           Offset(headCenter.dx + dx, headCenter.dy - 2), 4, eyeWhitePaint);
       canvas.drawCircle(
@@ -541,7 +543,7 @@ class _GuardSoldierCard extends StatelessWidget {
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
         color: const Color(0xFF1A0A0A),
-        border: Border.all(color: const Color(0xFFFF4444).withOpacity(0.4)),
+        border: Border.all(color: const Color(0xFFFF4444).withValues(alpha: 0.4)),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Column(
@@ -558,7 +560,7 @@ class _GuardSoldierCard extends StatelessWidget {
               color: const Color(0xFF2A0A0A),
               borderRadius: BorderRadius.circular(6),
               border:
-                  Border.all(color: const Color(0xFFFF4444).withOpacity(0.3)),
+                  Border.all(color: const Color(0xFFFF4444).withValues(alpha: 0.3)),
             ),
             child: Text(
               '"The virgins are\nwaiting for you!"',
@@ -667,7 +669,7 @@ class _GuardSoldierPainter extends CustomPainter {
     );
     // Arabic-style script hint on headband (decorative lines)
     final scriptPaint = Paint()
-      ..color = Colors.white.withOpacity(0.4)
+      ..color = Colors.white.withValues(alpha: 0.4)
       ..strokeWidth = 0.8
       ..style = PaintingStyle.stroke;
     canvas.drawLine(
@@ -679,7 +681,7 @@ class _GuardSoldierPainter extends CustomPainter {
     // Eyes (dark, intense)
     final eyeWhitePaint = Paint()..color = Colors.white;
     final eyePaint = Paint()..color = const Color(0xFF2A1A08);
-    for (final dx in [-5.5, 5.5]) {
+    for (final double dx in [-5.5, 5.5]) {
       canvas.drawCircle(
           Offset(headCenter.dx + dx, headCenter.dy - 1), 3.5, eyeWhitePaint);
       canvas.drawCircle(
@@ -703,7 +705,7 @@ class _GuardSoldierPainter extends CustomPainter {
     );
 
     // Beard stubble
-    final beardPaint = Paint()..color = const Color(0xFF2A1A08).withOpacity(0.5);
+    final beardPaint = Paint()..color = const Color(0xFF2A1A08).withValues(alpha: 0.5);
     canvas.drawOval(
       Rect.fromCenter(
           center: Offset(headCenter.dx, headCenter.dy + 6), width: 18, height: 8),

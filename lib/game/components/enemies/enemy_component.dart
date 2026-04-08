@@ -1,5 +1,6 @@
 import 'package:flame/components.dart';
 import 'package:flutter/material.dart';
+
 import '../../../models/enemy_data.dart';
 import '../../bombing_war_game.dart';
 
@@ -84,8 +85,8 @@ abstract class EnemyComponent extends PositionComponent {
   void _drawHealthBar(Canvas canvas) {
     if (_health >= enemyData.health) return; // No bar at full health
     final barWidth = enemyData.size;
-    const barH = 3.0;
-    final barY = -8.0;
+    const double barH = 3.0;
+    const double barY = -8.0;
 
     canvas.drawRect(
       Rect.fromLTWH(-barWidth / 2 + size.x / 2, barY, barWidth, barH),

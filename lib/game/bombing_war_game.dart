@@ -1,26 +1,30 @@
+import 'dart:math' as math;
+import 'package:flame/events.dart';
 import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../config/game_config.dart';
 import '../models/aircraft_data.dart';
-import 'managers/save_manager.dart';
+import 'components/aircraft/aircraft_component.dart';
+import 'components/aircraft/heavy_bomber_component.dart';
+import 'components/aircraft/interceptor_component.dart';
+import 'components/aircraft/stealth_component.dart';
+import 'components/effects/explosion_effect.dart';
+import 'components/environment/starfield_component.dart';
+import 'components/hud/hud_component.dart';
+import 'components/hud/joystick_component.dart';
+import 'components/hud/weapon_button_component.dart';
 import 'managers/audio_manager.dart';
-import 'managers/level_manager.dart';
 import 'managers/game_manager.dart';
+import 'managers/level_manager.dart';
+import 'managers/save_manager.dart';
 import 'systems/collision_system.dart';
 import 'systems/score_system.dart';
 import 'systems/threat_system.dart';
 import 'systems/wave_system.dart';
-import 'components/aircraft/aircraft_component.dart';
-import 'components/aircraft/interceptor_component.dart';
-import 'components/aircraft/heavy_bomber_component.dart';
-import 'components/aircraft/stealth_component.dart';
-import 'components/hud/hud_component.dart';
-import 'components/hud/joystick_component.dart';
-import 'components/hud/weapon_button_component.dart';
-import 'components/effects/explosion_effect.dart';
 
-class BombingWarGame extends FlameGame {
+class BombingWarGame extends FlameGame with KeyboardEvents {
   BombingWarGame({
     required this.saveManager,
     required this.selectedAircraftData,
@@ -50,8 +54,57 @@ class BombingWarGame extends FlameGame {
   VoidCallback? onGameOver;
   void Function(int score, int coins)? onLevelComplete;
 
+  final Set<LogicalKeyboardKey> _pressedKeys = {};
+
+  // Shake effect properties
+  double _shakeTimer = 0.0;
+  double _shakeIntensity = 0.0;
+
   @override
-  Color backgroundColor() => const Color(0xFF1A2A1A);
+  KeyEventResult onKeyEvent(KeyEvent event, Set<LogicalKeyboardKey> keysPressed) {
+    final isKeyDown = event is KeyDownEvent || event is KeyRepeatEvent;
+
+    if (isKeyDown) {
+      if (event.logicalKey == LogicalKeyboardKey.space) {
+        playerAircraft?.fireWeapon();
+      } else if (event.logicalKey == LogicalKeyboardKey.keyE ||
+          event.logicalKey == LogicalKeyboardKey.shiftLeft) {
+        playerAircraft?.activateSpecial();
+      } else if (event.logicalKey == LogicalKeyboardKey.keyQ ||
+          event.logicalKey == LogicalKeyboardKey.tab) {
+        playerAircraft?.cycleWeapon();
+      }
+    }
+
+    _pressedKeys.clear();
+    _pressedKeys.addAll(keysPressed);
+
+    return KeyEventResult.handled;
+  }
+
+  Vector2 _getKeyboardDirection() {
+    final direction = Vector2.zero();
+    if (_pressedKeys.contains(LogicalKeyboardKey.keyW) ||
+        _pressedKeys.contains(LogicalKeyboardKey.arrowUp)) {
+      direction.y -= 1;
+    }
+    if (_pressedKeys.contains(LogicalKeyboardKey.keyS) ||
+        _pressedKeys.contains(LogicalKeyboardKey.arrowDown)) {
+      direction.y += 1;
+    }
+    if (_pressedKeys.contains(LogicalKeyboardKey.keyA) ||
+        _pressedKeys.contains(LogicalKeyboardKey.arrowLeft)) {
+      direction.x -= 1;
+    }
+    if (_pressedKeys.contains(LogicalKeyboardKey.keyD) ||
+        _pressedKeys.contains(LogicalKeyboardKey.arrowRight)) {
+      direction.x += 1;
+    }
+    return direction.normalized();
+  }
+
+  @override
+  Color backgroundColor() => const Color(0xFF0A0E14);
 
   @override
   Future<void> onLoad() async {
@@ -74,6 +127,7 @@ class BombingWarGame extends FlameGame {
     levelManager.setLevel(saveManager.progress.currentLevel);
 
     await _spawnPlayer();
+    await add(StarfieldComponent());
     await _buildHud();
 
     gameManager.setState(GameState.playing);
@@ -120,14 +174,21 @@ class BombingWarGame extends FlameGame {
     if (gameManager.state != GameState.playing) return;
     super.update(dt);
 
+    _updateShake(dt);
+
     collisionSystem.update(dt);
     scoreSystem.update(dt);
     threatSystem.update(dt, isStealthActive: playerAircraft?.isCloaked ?? false);
     waveSystem.update(dt);
 
-    // Feed joystick direction to player aircraft each frame
-    if (playerAircraft != null && joystick != null) {
-      playerAircraft!.applyMovement(joystick!.direction, dt);
+    // Feed movement to player aircraft each frame
+    if (playerAircraft != null) {
+      final kbDir = _getKeyboardDirection();
+      if (!kbDir.isZero()) {
+        playerAircraft!.applyMovement(kbDir, dt);
+      } else if (joystick != null) {
+        playerAircraft!.applyMovement(joystick!.direction, dt);
+      }
     }
 
     // Trigger barrage if threat bar is full
@@ -182,6 +243,23 @@ class BombingWarGame extends FlameGame {
   void spawnExplosion(Vector2 pos, {double radius = 40.0}) {
     add(ExplosionEffect(position: pos.clone(), radius: radius));
     audioManager.playExplosion().catchError((_) {});
+    shakeScreen(intensity: radius / 10.0);
+  }
+
+  void shakeScreen({double duration = 0.3, double intensity = 5.0}) {
+    _shakeTimer = duration;
+    _shakeIntensity = intensity;
+  }
+
+  void _updateShake(double dt) {
+    if (_shakeTimer > 0) {
+      _shakeTimer -= dt;
+      final shakeX = (math.Random().nextDouble() - 0.5) * 2 * _shakeIntensity;
+      final shakeY = (math.Random().nextDouble() - 0.5) * 2 * _shakeIntensity;
+      camera.viewfinder.position = Vector2(shakeX, shakeY);
+    } else {
+      camera.viewfinder.position = Vector2.zero();
+    }
   }
 
   /// Notify score system of a kill and update HUD.

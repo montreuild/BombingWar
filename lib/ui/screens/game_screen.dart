@@ -1,11 +1,11 @@
-import 'package:flutter/material.dart';
 import 'package:flame/game.dart';
-import 'package:flame/components.dart' show Vector2;
+import 'package:flutter/material.dart';
+
 import '../../game/bombing_war_game.dart';
 import '../../game/managers/save_manager.dart';
 import '../../models/aircraft_data.dart';
-import 'level_complete_screen.dart';
 import 'game_over_screen.dart';
+import 'level_complete_screen.dart';
 
 /// Flutter widget that hosts the Flame game and listens for game-over/level-complete events.
 class GameScreen extends StatefulWidget {

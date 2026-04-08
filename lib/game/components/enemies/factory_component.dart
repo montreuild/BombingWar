@@ -1,16 +1,16 @@
 import 'package:flame/components.dart';
 import 'package:flutter/material.dart';
+
 import '../../../config/game_config.dart';
 import '../../../models/enemy_data.dart';
-import '../../bombing_war_game.dart';
 import '../projectiles/bullet_component.dart';
 import 'enemy_component.dart';
 
 /// Underground Factory — boss target.
 /// Only destroyable by penetrator bombs. Spawns infantry reinforcements.
 class FactoryComponent extends EnemyComponent {
-  FactoryComponent({required super.game, required Vector2 position})
-      : super(position: position, enemyData: EnemyData.factory);
+  FactoryComponent({required super.game, required super.position})
+      : super(enemyData: EnemyData.factory);
 
   double _pulseTimer = 0.0;
   double _spawnTimer = 0.0;
@@ -61,48 +61,82 @@ class FactoryComponent extends EnemyComponent {
   @override
   void onRender(Canvas canvas) {
     final pulse = ((_pulseTimer * 2).remainder(1.0));
+    final double alpha = 1.0;
 
-    // Main building
-    canvas.drawRect(
-      Rect.fromLTWH(size.x * 0.05, size.y * 0.3, size.x * 0.9, size.y * 0.65),
-      Paint()..color = const Color(0xFF556644),
+    // 1. Underground Foundation (Deeper base)
+    final foundationPaint = Paint()
+      ..shader = const LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: [Color(0xFF2A3520), Color(0xFF1A2510)],
+      ).createShader(Rect.fromLTWH(0, size.y * 0.7, size.x, size.y * 0.3));
+    
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        Rect.fromLTWH(0, size.y * 0.7, size.x, size.y * 0.3),
+        const Radius.circular(4),
+      ),
+      foundationPaint,
     );
 
-    // Underground indicator
-    canvas.drawRect(
-      Rect.fromLTWH(0, size.y * 0.7, size.x, size.y * 0.3),
-      Paint()..color = const Color(0xFF3A4A30),
+    // 2. Main Building Structure (Metallic/Industrial)
+    final buildingPaint = Paint()
+      ..shader = const LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [Color(0xFF556644), Color(0xFF3A4A30)],
+      ).createShader(Rect.fromLTWH(size.x * 0.05, size.y * 0.3, size.x * 0.9, size.y * 0.5));
+    
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        Rect.fromLTWH(size.x * 0.05, size.y * 0.3, size.x * 0.9, size.y * 0.5),
+        const Radius.circular(2),
+      ),
+      buildingPaint,
     );
 
-    // Warning lights that pulse
-    final lightPaint = Paint()
-      ..color = Color.fromRGBO(255, 50, 0, 0.5 + pulse * 0.5);
-    for (int i = 0; i < 4; i++) {
-      canvas.drawCircle(
-        Offset(size.x * (0.15 + i * 0.23), size.y * 0.25),
-        4,
-        lightPaint,
+    // 3. Industrial details (Windows/Vents)
+    final detailPaint = Paint()..color = Colors.black.withValues(alpha: 0.3);
+    for (int i = 0; i < 3; i++) {
+      canvas.drawRect(
+        Rect.fromLTWH(size.x * (0.15 + i * 0.28), size.y * 0.45, size.x * 0.15, size.y * 0.2),
+        detailPaint,
       );
     }
 
-    // Chimney stacks
-    final chimPaint = Paint()..color = const Color(0xFF333333);
-    canvas.drawRect(
-        Rect.fromLTWH(size.x * 0.15, size.y * 0.05, 8, size.y * 0.3),
-        chimPaint);
-    canvas.drawRect(
-        Rect.fromLTWH(size.x * 0.75, size.y * 0.05, 8, size.y * 0.3),
-        chimPaint);
+    // 4. Chimney stacks with glowing tops
+    final chimPaint = Paint()..color = const Color(0xFF222222);
+    final glowPaint = Paint()
+      ..color = Colors.orange.withValues(alpha: 0.4 + pulse * 0.4)
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4);
 
-    // "REQUIRES PENETRATOR" label hint (small text via canvas)
-    // Skipped for clarity; HUD threat system informs player instead
+    // Left Chimney
+    canvas.drawRect(Rect.fromLTWH(size.x * 0.15, size.y * 0.1, 10, size.y * 0.3), chimPaint);
+    canvas.drawCircle(Offset(size.x * 0.15 + 5, size.y * 0.1), 4, glowPaint);
+    
+    // Right Chimney
+    canvas.drawRect(Rect.fromLTWH(size.x * 0.75, size.y * 0.05, 10, size.y * 0.35), chimPaint);
+    canvas.drawCircle(Offset(size.x * 0.75 + 5, size.y * 0.05), 4, glowPaint);
+
+    // 5. Warning lights (pulsing red)
+    final lightPaint = Paint()
+      ..color = Colors.red.withValues(alpha: 0.3 + pulse * 0.6)
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 2);
+      
+    for (int i = 0; i < 4; i++) {
+      canvas.drawCircle(
+        Offset(size.x * (0.2 + i * 0.2), size.y * 0.35),
+        3,
+        lightPaint,
+      );
+    }
   }
 }
 
 /// Simple infantry spawned by the factory — no onDefeated callback needed.
 class _FactoryInfantry extends EnemyComponent {
-  _FactoryInfantry({required super.game, required Vector2 position})
-      : super(position: position, enemyData: EnemyData.infantry);
+  _FactoryInfantry({required super.game, required super.position})
+      : super(enemyData: EnemyData.infantry);
 
   @override
   void onUpdate(double dt, bool canFire) {

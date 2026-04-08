@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+
 import '../../models/aircraft_data.dart';
 
 /// Reusable card for displaying aircraft info in the hangar.
@@ -70,8 +71,8 @@ class _AircraftIcon extends StatelessWidget {
       height: 56,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        color: color.withOpacity(0.1),
-        border: Border.all(color: color.withOpacity(0.5)),
+        color: color.withValues(alpha: 0.1),
+        border: Border.all(color: color.withValues(alpha: 0.5)),
       ),
       child: Icon(Icons.flight, color: color, size: 28),
     );
@@ -198,9 +199,9 @@ class _StatusBadge extends StatelessWidget {
                 : Colors.white38,
           ),
         ),
-        Text(
+        const Text(
           'coins',
-          style: const TextStyle(fontSize: 9, color: Colors.white38),
+          style: TextStyle(fontSize: 9, color: Colors.white38),
         ),
       ],
     );

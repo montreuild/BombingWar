@@ -26,7 +26,7 @@ class SmokeTrail extends PositionComponent {
       Offset.zero,
       _maxRadius * progress,
       Paint()
-        ..color = color.withOpacity((1.0 - progress) * 0.5)
+        ..color = color.withValues(alpha: (1.0 - progress) * 0.5)
         ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4),
     );
   }

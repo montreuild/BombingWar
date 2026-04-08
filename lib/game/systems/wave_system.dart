@@ -1,13 +1,15 @@
 import 'dart:math';
+
 import 'package:flame/components.dart';
+
 import '../../config/game_config.dart';
-import '../../models/level_data.dart';
 import '../../models/enemy_data.dart';
+import '../../models/level_data.dart';
 import '../bombing_war_game.dart';
-import '../components/enemies/infantry_component.dart';
-import '../components/enemies/rpg_unit_component.dart';
 import '../components/enemies/bunker_component.dart';
 import '../components/enemies/factory_component.dart';
+import '../components/enemies/infantry_component.dart';
+import '../components/enemies/rpg_unit_component.dart';
 
 /// Handles procedural enemy wave spawning.
 class WaveSystem {

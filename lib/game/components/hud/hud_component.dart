@@ -1,5 +1,6 @@
 import 'package:flame/components.dart';
 import 'package:flutter/material.dart';
+
 import '../../../config/game_config.dart';
 import '../../bombing_war_game.dart';
 
@@ -39,10 +40,10 @@ class HudComponent extends PositionComponent {
   }
 
   void _drawHealthBar(Canvas canvas) {
-    const barW = 120.0;
-    const barH = 12.0;
-    const left = GameConfig.hudPadding;
-    const top = GameConfig.hudPadding + 24.0;
+    const double barW = 120.0;
+    const double barH = 12.0;
+    const double left = GameConfig.hudPadding;
+    const double top = GameConfig.hudPadding + 24.0;
 
     canvas.drawRect(
       const Rect.fromLTWH(left, top, barW, barH),
@@ -53,7 +54,7 @@ class HudComponent extends PositionComponent {
     final pct = player != null
         ? (player.health / player.maxHealth).clamp(0.0, 1.0)
         : 0.0;
-    final hpColor = pct > 0.5
+    final Color hpColor = pct > 0.5
         ? Colors.green
         : pct > 0.25
             ? Colors.orange
@@ -77,18 +78,18 @@ class HudComponent extends PositionComponent {
   }
 
   void _drawThreatBar(Canvas canvas) {
-    const barW = 100.0;
-    const barH = 10.0;
-    final left = GameConfig.worldWidth - barW - GameConfig.hudPadding;
-    const top = GameConfig.hudPadding;
+    const double barW = 100.0;
+    const double barH = 10.0;
+    const double left = GameConfig.worldWidth - 100.0 - GameConfig.hudPadding;
+    const double top = GameConfig.hudPadding;
 
     canvas.drawRect(
-      Rect.fromLTWH(left, top, barW, barH),
+      const Rect.fromLTWH(left, top, barW, barH),
       Paint()..color = Colors.black54,
     );
 
-    final pct = (_threatPercent / 100.0).clamp(0.0, 1.0);
-    final color = pct < 0.5
+    final double pct = (_threatPercent / 100.0).clamp(0.0, 1.0);
+    final Color color = pct < 0.5
         ? Colors.yellow
         : pct < 0.8
             ? Colors.orange
@@ -100,14 +101,14 @@ class HudComponent extends PositionComponent {
     );
 
     canvas.drawRect(
-      Rect.fromLTWH(left, top, barW, barH),
+      const Rect.fromLTWH(left, top, barW, barH),
       Paint()
         ..color = Colors.white38
         ..style = PaintingStyle.stroke
         ..strokeWidth = 1,
     );
 
-    _drawText(canvas, 'THREAT', Offset(left, top + 14),
+    _drawText(canvas, 'THREAT', const Offset(left, top + 14),
         fontSize: 9, color: Colors.white70);
   }
 

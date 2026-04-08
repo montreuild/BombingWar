@@ -1,5 +1,6 @@
 import 'package:flame/components.dart';
 import 'package:flutter/material.dart';
+
 import '../../../config/game_config.dart';
 import '../../bombing_war_game.dart';
 
@@ -12,7 +13,6 @@ class JoystickComponent extends PositionComponent {
 
   Vector2 _knobOffset = Vector2.zero();
   bool _active = false;
-  int? _pointerId;
 
   /// Normalized direction vector, magnitude 0–1.
   Vector2 get direction {
@@ -69,7 +69,7 @@ class JoystickComponent extends PositionComponent {
       Offset(c.x, c.y),
       GameConfig.joystickRadius,
       Paint()
-        ..color = Colors.white.withOpacity(0.15)
+        ..color = Colors.white.withValues(alpha: 0.15)
         ..style = PaintingStyle.stroke
         ..strokeWidth = 2,
     );
@@ -77,7 +77,7 @@ class JoystickComponent extends PositionComponent {
     canvas.drawCircle(
       Offset(c.x, c.y),
       GameConfig.joystickRadius,
-      Paint()..color = Colors.white.withOpacity(0.05),
+      Paint()..color = Colors.white.withValues(alpha: 0.05),
     );
 
     // Knob
@@ -85,7 +85,7 @@ class JoystickComponent extends PositionComponent {
     canvas.drawCircle(
       Offset(knobPos.x, knobPos.y),
       GameConfig.joystickKnobRadius,
-      Paint()..color = Colors.white.withOpacity(_active ? 0.5 : 0.2),
+      Paint()..color = Colors.white.withValues(alpha: _active ? 0.5 : 0.2),
     );
   }
 }

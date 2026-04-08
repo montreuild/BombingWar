@@ -1,9 +1,10 @@
 import 'dart:math';
+
 import 'package:flame/components.dart';
+
 import '../bombing_war_game.dart';
-import '../components/projectiles/projectile_component.dart';
 import '../components/enemies/enemy_component.dart';
-import '../components/aircraft/aircraft_component.dart';
+import '../components/projectiles/projectile_component.dart';
 
 /// Manages collision detection between projectiles, enemies and the player.
 /// Uses simple circle-overlap checks each frame (no Flame collision callbacks).

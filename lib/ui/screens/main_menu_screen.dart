@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+
 import '../../game/managers/save_manager.dart';
 import '../../models/aircraft_data.dart';
 import '../widgets/ad_banner_widget.dart';
 import 'hangar_screen.dart';
-import 'game_screen.dart';
 import 'mission_briefing_screen.dart';
 
 class MainMenuScreen extends StatelessWidget {
@@ -199,11 +199,11 @@ class MainMenuScreen extends StatelessWidget {
   }
 
   Widget _buildVersion() {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
+    return const Padding(
+      padding: EdgeInsets.only(bottom: 8),
       child: Text(
         'v1.0.0',
-        style: const TextStyle(color: Colors.white24, fontSize: 10),
+        style: TextStyle(color: Colors.white24, fontSize: 10),
       ),
     );
   }
@@ -227,9 +227,9 @@ class _MenuButton extends StatelessWidget {
       child: Container(
         height: 52,
         decoration: BoxDecoration(
-          border: Border.all(color: color.withOpacity(0.6), width: 1.5),
+          border: Border.all(color: color.withValues(alpha: 0.6), width: 1.5),
           borderRadius: BorderRadius.circular(8),
-          color: color.withOpacity(0.1),
+          color: color.withValues(alpha: 0.1),
         ),
         child: Center(
           child: Text(
