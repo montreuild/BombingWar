@@ -66,7 +66,7 @@ class ScoreSystem {
     // Track for mission report
     if (data.isBonus) {
       bonusTargetsDestroyed++;
-    } else {
+    } else if (data.countsForVictory) {
       enemiesKilled++;
     }
 

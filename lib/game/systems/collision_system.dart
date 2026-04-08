@@ -49,7 +49,7 @@ class CollisionSystem {
             isGBU: projectile.isPenetrator,
           );
 
-          // Area-of-effect for bombs
+          // Area-of-effect for bombs and missiles (not bullets)
           if (projectile.explosionRadius > 0) {
             _applyAoeExplosion(
               projectile.position,
@@ -58,14 +58,12 @@ class CollisionSystem {
               enemy,
               isGBU: projectile.isPenetrator,
             );
-          }
 
-          game.spawnExplosion(
-            projectile.position,
-            radius: projectile.explosionRadius > 0
-                ? projectile.explosionRadius
-                : 20.0,
-          );
+            game.spawnExplosion(
+              projectile.position,
+              radius: projectile.explosionRadius,
+            );
+          }
 
           projectile.removeFromParent();
           break; // One projectile hits one enemy

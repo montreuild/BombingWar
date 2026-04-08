@@ -17,10 +17,11 @@ class MissileComponent extends ProjectileComponent {
     required this.game,
   }) : super(
           size: GameConfig.missileSize,
+          explosionRadius: GameConfig.missileExplosionRadius,
         );
 
   final BombingWarGame game;
-  Vector2 _velocity = Vector2(0, -1);
+  Vector2 _velocity = Vector2(1, 0); // Initial direction: forward
 
   @override
   double get maxLifespan =>

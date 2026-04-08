@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+import 'package:flame/components.dart' show Anchor;
 import 'package:flame/events.dart';
 import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
@@ -9,7 +10,6 @@ import '../models/enemy_data.dart';
 import '../models/level_data.dart';
 import 'components/aircraft/aircraft_component.dart';
 import 'components/effects/explosion_effect.dart';
-import 'components/environment/starfield_component.dart';
 import 'components/effects/crater_component.dart';
 import 'components/effects/debris_component.dart';
 import 'components/enemies/enemy_component.dart';
@@ -74,6 +74,8 @@ class BombingWarGame extends FlameGame with KeyboardEvents {
   // Camera / scrolling
   double cameraX = 0.0;
   double _missionDistance = GameConfig.baseMissionDistance;
+
+  double get missionDistance => _missionDistance;
 
   // Active radar list
   final List<RadarComponent> _activeRadars = [];
@@ -154,6 +156,7 @@ class BombingWarGame extends FlameGame with KeyboardEvents {
 
     camera.viewfinder.visibleGameSize =
         Vector2(GameConfig.worldWidth, GameConfig.worldHeight);
+    camera.viewfinder.anchor = Anchor.topLeft;
 
     audioManager = AudioManager();
     levelManager = LevelManager();
@@ -174,7 +177,6 @@ class BombingWarGame extends FlameGame with KeyboardEvents {
       missionDistance: _missionDistance,
     );
     await add(terrain!);
-    await add(StarfieldComponent());
 
     // Spawn all enemies
     _spawnEnemiesFromLevel(level);
@@ -297,7 +299,6 @@ class BombingWarGame extends FlameGame with KeyboardEvents {
     if (gameManager.state != GameState.playing) return;
     super.update(dt);
 
-    _updateShake(dt);
     collisionSystem.update(dt);
     scoreSystem.update(dt);
 
@@ -315,6 +316,8 @@ class BombingWarGame extends FlameGame with KeyboardEvents {
       cameraX = cameraX.clamp(0, _missionDistance - GameConfig.worldWidth);
       terrain?.cameraX = cameraX;
     }
+
+    _updateShake(dt);
 
     // Update active drone count for HUD
     hud?.updateActiveDrones(_activeDroneCount);
@@ -613,9 +616,9 @@ class BombingWarGame extends FlameGame with KeyboardEvents {
           (math.Random().nextDouble() - 0.5) * 2 * _shakeIntensity;
       final shakeY =
           (math.Random().nextDouble() - 0.5) * 2 * _shakeIntensity;
-      camera.viewfinder.position = Vector2(shakeX, shakeY);
+      camera.viewfinder.position = Vector2(cameraX + shakeX, shakeY);
     } else {
-      camera.viewfinder.position = Vector2.zero();
+      camera.viewfinder.position = Vector2(cameraX, 0.0);
     }
   }
 
