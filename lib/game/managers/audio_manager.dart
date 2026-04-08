@@ -44,6 +44,13 @@ class AudioManager {
   Future<void> playGameOver() => playSfx('game_over.mp3');
   Future<void> playThreatBarrage() => playSfx('barrage.mp3');
 
+  // New Radio & Rescue SFX
+  Future<void> playMayday() => playSfx('mayday.mp3');
+  Future<void> playPilotEjected() => playSfx('pilot_ejected.mp3');
+  Future<void> playRescueArrived() => playSfx('rescue_arrived.mp3');
+  Future<void> playPilotRescued() => playSfx('pilot_rescued.mp3');
+  Future<void> playRadarBeep() => playSfx('radar_beep.mp3');
+
   void dispose() {
     _musicPlayer.dispose();
     _sfxPlayer.dispose();

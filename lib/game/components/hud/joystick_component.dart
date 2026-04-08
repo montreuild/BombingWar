@@ -23,10 +23,10 @@ class JoystickComponent extends PositionComponent {
 
   // Center of the joystick in world coords
   Vector2 get _center => Vector2(
-        GameConfig.joystickRadius + GameConfig.hudPadding * 2,
+        GameConfig.joystickRadius + GameConfig.hudPadding,
         GameConfig.worldHeight -
             GameConfig.joystickRadius -
-            GameConfig.hudPadding * 2,
+            GameConfig.hudPadding,
       );
 
   /// Called by BombingWarGame pan callbacks.

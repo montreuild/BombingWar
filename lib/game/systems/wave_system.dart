@@ -72,8 +72,22 @@ class WaveSystem {
     }
   }
 
+  Vector2 _randomSpawnPosition(EnemyType type) {
+    // Ground units (Infantry, RPG, Bunker) spawn on the ground line
+    // Factories are deep in the underground
+    final x = GameConfig.spawnMargin +
+        _rng.nextDouble() * (GameConfig.worldWidth - GameConfig.spawnMargin * 2);
+    
+    if (type == EnemyType.factory) {
+      return Vector2(x, GameConfig.groundLevel + 50);
+    }
+    
+    // Position on the ground line
+    return Vector2(x, GameConfig.groundLevel - 10);
+  }
+
   void _spawnEnemy(EnemyType type) {
-    final pos = _randomSpawnPosition();
+    final pos = _randomSpawnPosition(type);
     switch (type) {
       case EnemyType.infantry:
         final e = InfantryComponent(game: game, position: pos);
@@ -91,26 +105,15 @@ class WaveSystem {
         game.add(e);
         _activeEnemies++;
       case EnemyType.factory:
-        _spawnFactory();
+        _spawnFactory(pos);
     }
-  }
-
-  void _spawnFactory() {
-    final pos = Vector2(
-      GameConfig.worldWidth / 2,
-      GameConfig.worldHeight * 0.15,
-    );
-    final e = FactoryComponent(game: game, position: pos);
-    e.onDefeated = _onEnemyDefeated;
-    game.add(e);
-    _activeEnemies++;
   }
 
   void _onEnemyDefeated() {
     _activeEnemies = (_activeEnemies - 1).clamp(0, 9999);
   }
 
-  /// Spawns a missile barrage from multiple edges (triggered by ThreatSystem).
+  /// Spawns a missile barrage from the right (triggered by ThreatSystem).
   void spawnBarrage() {
     for (int i = 0; i < GameConfig.barrageMissileCount; i++) {
       _spawnBarrageMissile();
@@ -118,20 +121,21 @@ class WaveSystem {
   }
 
   void _spawnBarrageMissile() {
-    // Barrage missiles spawn from top edge
-    final x = _rng.nextDouble() * GameConfig.worldWidth;
-    final pos = Vector2(x, -10);
+    final y = _rng.nextDouble() * GameConfig.skyHeight;
+    final pos = Vector2(GameConfig.worldWidth + 50, y);
+    // Barrage units are basically RPG trucks that move in from the side
     final e = RpgUnitComponent(game: game, position: pos);
-    // No callback needed for barrage units — they don't count toward wave completion
     game.add(e);
   }
 
-  Vector2 _randomSpawnPosition() {
-    // Enemies spawn in the upper portion of the screen
-    final x = GameConfig.spawnMargin +
-        _rng.nextDouble() * (GameConfig.worldWidth - GameConfig.spawnMargin * 2);
-    final y = GameConfig.spawnMargin +
-        _rng.nextDouble() * (GameConfig.worldHeight * 0.4);
-    return Vector2(x, y);
+  void _spawnFactory([Vector2? pos]) {
+    final spawnPos = pos ?? Vector2(
+      GameConfig.worldWidth * 0.8,
+      GameConfig.groundLevel + 40,
+    );
+    final e = FactoryComponent(game: game, position: spawnPos);
+    e.onDefeated = _onEnemyDefeated;
+    game.add(e);
+    _activeEnemies++;
   }
 }

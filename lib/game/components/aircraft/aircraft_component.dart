@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'package:flame/components.dart';
 import 'package:flutter/material.dart';
 
@@ -28,8 +29,11 @@ abstract class AircraftComponent extends PositionComponent {
   bool _specialActive = false;
   bool _isInvincible = false;
 
+  int _ammoRemaining = GameConfig.maxAmmoPerAircraft;
+
   double get health => _health;
   double get maxHealth => _maxHealth;
+  int get ammoRemaining => _ammoRemaining;
   double get hitRadius => GameConfig.aircraftSize * 0.4;
   bool get isAlive => _health > 0;
   bool get isInvincible => _isInvincible;
@@ -79,18 +83,10 @@ abstract class AircraftComponent extends PositionComponent {
   void _renderBody(Canvas canvas) {
     final alpha = isCloaked ? 0.35 : 1.0;
 
-    // Drop shadow
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(
-        Rect.fromCenter(
-          center: Offset(size.x / 2 + 4, size.y / 2 + 6),
-          width: size.x * 0.4,
-          height: size.y * 0.8),
-        const Radius.circular(4),
-      ),
-      Paint()..color = Colors.black.withValues(alpha: 0.3 * alpha),
-    );
-
+    // Rotation based on movement (slight tilt)
+    // In side-view, we face right (angle 0) or left.
+    
+    // Fuselage (Horizontal)
     final bodyPaint = Paint()
       ..shader = LinearGradient(
         begin: Alignment.topCenter,
@@ -101,58 +97,44 @@ abstract class AircraftComponent extends PositionComponent {
         ],
       ).createShader(Rect.fromLTWH(0, 0, size.x, size.y));
 
-    final wingPaint = Paint()
-      ..color = wingColor.withValues(alpha: alpha);
-
-    // Wings with depth
-    final wingPath = Path()
-      ..moveTo(size.x * 0.5, size.y * 0.4)
-      ..lineTo(0, size.y * 0.7)
-      ..lineTo(size.x * 0.35, size.y * 0.55)
-      ..close()
-      ..moveTo(size.x * 0.5, size.y * 0.4)
-      ..lineTo(size.x, size.y * 0.7)
-      ..lineTo(size.x * 0.65, size.y * 0.55)
+    // Tail fin
+    final tailPath = Path()
+      ..moveTo(size.x * 0.1, size.y * 0.5)
+      ..lineTo(0, size.y * 0.2)
+      ..lineTo(size.x * 0.2, size.y * 0.5)
       ..close();
-    
-    canvas.drawPath(wingPath, wingPaint);
-    canvas.drawPath(wingPath, Paint()..color = Colors.black12..style = PaintingStyle.stroke..strokeWidth = 1);
+    canvas.drawPath(tailPath, bodyPaint);
 
-    // Fuselage
+    // Main Body
     canvas.drawRRect(
       RRect.fromRectAndRadius(
-        Rect.fromCenter(
-            center: Offset(size.x / 2, size.y / 2),
-            width: size.x * 0.4,
-            height: size.y * 0.8),
-        const Radius.circular(4),
+        Rect.fromLTWH(size.x * 0.1, size.y * 0.35, size.x * 0.8, size.y * 0.3),
+        const Radius.circular(8),
       ),
       bodyPaint,
     );
 
-    // Cockpit highlight
+    // Wings (Side profile)
+    final wingPaint = Paint()..color = wingColor.withValues(alpha: alpha);
+    canvas.drawRect(
+      Rect.fromLTWH(size.x * 0.4, size.y * 0.45, size.x * 0.3, size.y * 0.1),
+      wingPaint,
+    );
+
+    // Cockpit
     canvas.drawOval(
-      Rect.fromCenter(
-        center: Offset(size.x / 2, size.y * 0.35),
-        width: size.x * 0.15,
-        height: size.y * 0.2,
-      ),
+      Rect.fromLTWH(size.x * 0.6, size.y * 0.35, size.x * 0.2, size.y * 0.15),
       Paint()..color = Colors.lightBlueAccent.withValues(alpha: 0.6 * alpha),
     );
 
-    // Engine glow - Animated
-    final pulse = 0.8 + (0.2 * (DateTime.now().millisecondsSinceEpoch % 1000 / 1000));
+    // Engine Glow (Back)
+    final pulse = 0.8 + (0.2 * (DateTime.now().millisecondsSinceEpoch % 500 / 500));
     canvas.drawCircle(
-      Offset(size.x / 2, size.y * 0.88),
-      5 * pulse,
+      Offset(size.x * 0.1, size.y * 0.5),
+      4 * pulse,
       Paint()
         ..color = const Color(0xFFFF6600).withValues(alpha: 0.9 * alpha)
-        ..maskFilter = MaskFilter.blur(BlurStyle.normal, 6 * pulse),
-    );
-    canvas.drawCircle(
-      Offset(size.x / 2, size.y * 0.88),
-      2,
-      Paint()..color = Colors.white.withValues(alpha: 0.8 * alpha),
+        ..maskFilter = MaskFilter.blur(BlurStyle.normal, 4 * pulse),
     );
   }
 
@@ -209,19 +191,26 @@ abstract class AircraftComponent extends PositionComponent {
   }
 
   void fireWeapon() {
-    if (_fireCooldown > 0) return;
+    if (_fireCooldown > 0 || _ammoRemaining <= 0) return;
+    
     _fireCooldown = currentWeapon.cooldown;
+    _ammoRemaining--;
     _spawnProjectile(currentWeapon);
     game.audioManager.playShoot().catchError((_) {});
+
+    if (_ammoRemaining <= 0) {
+      game.onAircraftOutOfAmmo();
+    }
   }
 
   void _spawnProjectile(WeaponData weapon) {
-    final spawnPos = position - Vector2(0, GameConfig.aircraftSize / 2);
+    // Projectiles spawn from the front/bottom of the plane
+    final spawnPos = position + Vector2(size.x * 0.4, size.y * 0.2);
     switch (weapon.type) {
       case WeaponType.bullet:
         game.add(BulletComponent(
           position: spawnPos,
-          direction: Vector2(0, -1),
+          direction: Vector2(1, 0), // Side-view: fire right
           damage: weapon.damage,
           isPlayerProjectile: true,
         ));
@@ -262,6 +251,11 @@ abstract class AircraftComponent extends PositionComponent {
     if (_health <= 0) {
       _health = 0;
       game.spawnExplosion(position, radius: 50.0);
+      
+      // 50% chance of ejection
+      final wasEjected = math.Random().nextBool();
+      game.onAircraftDestroyed(position.clone(), wasEjected);
+
       removeFromParent();
     }
   }

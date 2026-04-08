@@ -7,8 +7,8 @@ import 'ui/screens/main_menu_screen.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Lock to portrait orientation for consistent gameplay
-  await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
+  // Lock to landscape orientation for side-scrolling gameplay
+  await SystemChrome.setPreferredOrientations([DeviceOrientation.landscapeLeft, DeviceOrientation.landscapeRight]);
   SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
 
   final saveManager = SaveManager();

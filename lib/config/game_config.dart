@@ -4,10 +4,19 @@ class GameConfig {
   GameConfig._();
 
   // ---------------------------------------------------------------------------
-  // Screen / World
+  // Screen / World (Horizontal Side-View)
   // ---------------------------------------------------------------------------
-  static const double worldWidth = 400.0;
-  static const double worldHeight = 800.0;
+  static const double worldWidth = 800.0;
+  static const double worldHeight = 400.0;
+
+  // Visual layout
+  static const double groundLevel = 300.0; // Ground line (y-coordinate)
+  static const double skyHeight = groundLevel;
+  static const double subSurfaceDepth = 100.0; // Underground gallery height
+
+  // Squadron Mechanics
+  static const int maxAmmoPerAircraft = 6;
+  static const int maxLossesPerMission = 4;
 
   // ---------------------------------------------------------------------------
   // Player Aircraft

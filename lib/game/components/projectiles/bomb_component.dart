@@ -12,23 +12,43 @@ class BombComponent extends ProjectileComponent {
     required super.explosionRadius,
     required super.isPlayerProjectile,
     required super.isPenetrator,
-  })  : _verticalSpeed =
-            isPlayerProjectile ? GameConfig.bombSpeed : GameConfig.bombSpeed * 0.5,
+  })  : _horizontalSpeed = isPlayerProjectile ? 100.0 : 0.0,
+        _verticalSpeed = 0.0,
         super(
           size: isPenetrator ? GameConfig.penetratorSize : GameConfig.bombSize,
         );
 
+  final double _horizontalSpeed;
   double _verticalSpeed;
+
+  BombComponent({
+    required super.position,
+    required super.damage,
+    required super.explosionRadius,
+    required super.isPlayerProjectile,
+    required super.isPenetrator,
+  })  : _horizontalSpeed = isPlayerProjectile ? 100.0 : 0.0,
+        _verticalSpeed = 0.0,
+        super(
+          size: isPenetrator ? GameConfig.penetratorSize : GameConfig.bombSize,
+        );
 
   @override
   void update(double dt) {
-    // Gravity accelerates the bomb downward each frame
-    _verticalSpeed += GameConfig.gravityAcceleration * dt;
+    // Parabolic trajectory
+    _verticalSpeed += GameConfig.gravityAcceleration * 5 * dt; // Stronger gravity for side-view
     position.y += _verticalSpeed * dt;
-    // Slight forward drift for carpet bombs
-    if (!isPenetrator) {
-      position.x += (_verticalSpeed * 0.02) * dt;
+    position.x += _horizontalSpeed * dt;
+
+    // Penetrator logic: it doesn't explode on ground level, it goes deeper
+    if (!isPenetrator && position.y >= GameConfig.groundLevel) {
+      // Explode on surface
+      removeFromParent();
+    } else if (isPenetrator && position.y >= GameConfig.worldHeight) {
+      // Penetrator explodes at the very bottom or when hitting a factory
+      removeFromParent();
     }
+
     super.update(dt);
   }
 

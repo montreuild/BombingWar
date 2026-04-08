@@ -1,3 +1,4 @@
+import 'package:flame/effects.dart';
 import 'dart:math' as math;
 import 'package:flame/events.dart';
 import 'package:flame/game.dart';
@@ -12,6 +13,10 @@ import 'components/aircraft/interceptor_component.dart';
 import 'components/aircraft/stealth_component.dart';
 import 'components/effects/explosion_effect.dart';
 import 'components/environment/starfield_component.dart';
+import 'components/rescue/jeep_component.dart';
+import 'components/rescue/pilot_component.dart';
+import 'components/rescue/rescue_helicopter_component.dart';
+import 'components/environment/terrain_component.dart';
 import 'components/hud/hud_component.dart';
 import 'components/hud/joystick_component.dart';
 import 'components/hud/weapon_button_component.dart';
@@ -49,6 +54,11 @@ class BombingWarGame extends FlameGame with KeyboardEvents {
   HudComponent? hud;
   JoystickComponent? joystick;
   WeaponButtonComponent? weaponButtons;
+
+  // Squadron & Rescue Management
+  int aircraftLosses = 0;
+  final List<AircraftData> squadronQueue = [];
+  bool isRescueMissionActive = false;
 
   // Flutter-layer callbacks
   VoidCallback? onGameOver;
@@ -110,11 +120,13 @@ class BombingWarGame extends FlameGame with KeyboardEvents {
   Future<void> onLoad() async {
     await super.onLoad();
 
-    // Fix world size so all devices render the same 400x800 world.
-    // Flame 1.18 uses the CameraComponent; visibleGameSize scales content
-    // to fill the screen while preserving the game coordinate space.
     camera.viewfinder.visibleGameSize =
         Vector2(GameConfig.worldWidth, GameConfig.worldHeight);
+
+    // Initialize Squadron
+    for (int i = 0; i < 4; i++) {
+      squadronQueue.add(selectedAircraftData);
+    }
 
     audioManager = AudioManager();
     levelManager = LevelManager();
@@ -128,6 +140,7 @@ class BombingWarGame extends FlameGame with KeyboardEvents {
 
     await _spawnPlayer();
     await add(StarfieldComponent());
+    await add(TerrainComponent()); // Ground and Underground layer
     await _buildHud();
 
     gameManager.setState(GameState.playing);
@@ -138,10 +151,12 @@ class BombingWarGame extends FlameGame with KeyboardEvents {
   }
 
   Future<void> _spawnPlayer() async {
-    playerAircraft = _createAircraft(selectedAircraftData);
+    if (squadronQueue.isEmpty) return;
+    final data = squadronQueue.removeAt(0);
+    playerAircraft = _createAircraft(data);
     playerAircraft!.position = Vector2(
-      GameConfig.worldWidth / 2,
-      GameConfig.worldHeight * 0.75,
+      GameConfig.worldWidth * 0.1, // Start on the left
+      GameConfig.groundLevel * 0.5, // Midway in the sky
     );
     await add(playerAircraft!);
   }
@@ -201,12 +216,84 @@ class BombingWarGame extends FlameGame with KeyboardEvents {
   }
 
   void _checkConditions() {
+    if (isRescueMissionActive) return; // Wait for rescue result
+
     if (playerAircraft == null || playerAircraft!.isRemoved) {
-      _triggerGameOver();
+      if (squadronQueue.isNotEmpty && aircraftLosses < GameConfig.maxLossesPerMission) {
+        _spawnPlayer();
+      } else {
+        _triggerGameOver();
+      }
       return;
     }
     if (waveSystem.isLevelComplete) {
       _triggerLevelComplete();
+    }
+  }
+
+  void onAircraftDestroyed(Vector2 pos, bool wasEjected) {
+    aircraftLosses++;
+    playerAircraft = null;
+    audioManager.playMayday().catchError((_) {});
+
+    if (wasEjected) {
+      isRescueMissionActive = true;
+      audioManager.playPilotEjected().catchError((_) {});
+      final pilot = PilotComponent(position: pos, game: this);
+      add(pilot);
+      
+      // Schedule helicopter arrival
+      Future.delayed(const Duration(seconds: 10), () {
+        if (isRescueMissionActive) {
+          audioManager.playRescueArrived().catchError((_) {});
+          add(RescueHelicopterComponent(game: this)..position = Vector2(-50, 50));
+        }
+      });
+      
+      // Spawn initial threat
+      add(JeepComponent(position: Vector2(GameConfig.worldWidth + 50, GameConfig.groundLevel - 10), game: this));
+    } else {
+      // No ejection, just try to spawn next plane if available
+      if (squadronQueue.isNotEmpty && aircraftLosses < GameConfig.maxLossesPerMission) {
+        _spawnPlayer();
+      } else if (aircraftLosses >= GameConfig.maxLossesPerMission) {
+        _triggerGameOver();
+      }
+    }
+  }
+
+  void onPilotKilled() {
+    isRescueMissionActive = false;
+    _triggerGameOver();
+  }
+
+  void onPilotRescued() {
+    isRescueMissionActive = false;
+    scoreSystem.addBonus(GameConfig.pilotRescueBonus);
+    if (squadronQueue.isNotEmpty && aircraftLosses < GameConfig.maxLossesPerMission) {
+      _spawnPlayer();
+    } else {
+      _triggerGameOver();
+    }
+  }
+
+  void onAircraftOutOfAmmo() {
+    if (playerAircraft == null) return;
+    
+    // Make the current aircraft fly away to the right
+    final oldAircraft = playerAircraft!;
+    oldAircraft.add(MoveByEffect(
+      Vector2(GameConfig.worldWidth, -50),
+      EffectController(duration: 2.0, curve: Curves.easeIn),
+      onComplete: () => oldAircraft.removeFromParent(),
+    ));
+    playerAircraft = null;
+
+    if (squadronQueue.isNotEmpty) {
+      _spawnPlayer();
+    } else {
+      // Out of planes and out of ammo? Level might be failed if objectives not met
+      // but usually we'll have enough.
     }
   }
 

@@ -28,10 +28,11 @@ class StarfieldComponent extends Component {
   @override
   void update(double dt) {
     for (final star in _stars) {
-      star.y += star.speed * dt;
-      if (star.y > GameConfig.worldHeight) {
-        star.y = -5;
-        star.x = _rng.nextDouble() * GameConfig.worldWidth;
+      // Side-scrolling: move stars horizontally
+      star.x -= (star.speed * 0.5) * dt; 
+      if (star.x < 0) {
+        star.x = GameConfig.worldWidth + 5;
+        star.y = _rng.nextDouble() * GameConfig.skyHeight;
       }
     }
   }

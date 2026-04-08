@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:flame/components.dart';
 
 import '../bombing_war_game.dart';
+import '../../config/game_config.dart';
 import '../components/enemies/enemy_component.dart';
 import '../components/projectiles/projectile_component.dart';
 
@@ -30,6 +31,12 @@ class CollisionSystem {
         .toList();
 
     for (final projectile in projectiles) {
+      // Ground collision (only for player projectiles like bombs)
+      if (!projectile.isPenetrator && projectile.position.y >= GameConfig.groundLevel) {
+        _handleGroundImpact(projectile);
+        continue;
+      }
+
       for (final enemy in enemies) {
         if (_circleOverlap(
           projectile.position,
@@ -93,16 +100,30 @@ class CollisionSystem {
     }
   }
 
+  void _handleGroundImpact(ProjectileComponent projectile) {
+    if (projectile.explosionRadius > 0) {
+      _applyAoeExplosion(
+        projectile.position,
+        projectile.explosionRadius,
+        projectile.damage,
+        null, // No primary target
+        isPenetrator: projectile.isPenetrator,
+      );
+      game.spawnExplosion(projectile.position, radius: projectile.explosionRadius);
+    }
+    projectile.removeFromParent();
+  }
+
   void _applyAoeExplosion(
     Vector2 center,
     double radius,
     double damage,
-    EnemyComponent primary, {
+    EnemyComponent? primary, {
     bool isPenetrator = false,
   }) {
     final enemies = game.children
         .whereType<EnemyComponent>()
-        .where((e) => !e.isRemoved && e.isAlive && e != primary)
+        .where((e) => !e.isRemoved && e.isAlive && (primary == null || e != primary))
         .toList();
 
     for (final enemy in enemies) {
