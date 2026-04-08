@@ -240,6 +240,7 @@ class GameConfig {
 
   // Barrage
   static const int barrageMissileCount = 5;
+  static const double defaultSpawnInterval = 1.0;
 
   // ---------------------------------------------------------------------------
   // Sky

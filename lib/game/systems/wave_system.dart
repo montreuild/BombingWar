@@ -62,7 +62,7 @@ class WaveSystem {
 
     _spawnEnemy(_allSpawns[_spawnIndex]);
     _spawnIndex++;
-    _spawnTimer = 1.0; // 1 second between spawns
+    _spawnTimer = GameConfig.defaultSpawnInterval;
 
     // Spawn factory once when the second enemy is queued
     final hasFactory = _level!.undergroundL1Enemies
