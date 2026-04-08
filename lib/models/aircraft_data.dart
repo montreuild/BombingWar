@@ -1,18 +1,14 @@
 import '../config/game_config.dart';
 import 'weapon_data.dart';
 
-enum SpecialAbility { barrelRoll, armor, cloak }
-
+/// In Desert Strike Mobile, there is a single aircraft type.
+/// The player gets 4 planes per mission.
 class AircraftData {
   const AircraftData({
     required this.id,
     required this.name,
     required this.speed,
     required this.health,
-    required this.weapons,
-    required this.specialAbility,
-    required this.unlockLevel,
-    required this.unlockCost,
     required this.description,
   });
 
@@ -20,51 +16,21 @@ class AircraftData {
   final String name;
   final double speed;
   final double health;
-  final List<WeaponData> weapons;
-  final SpecialAbility specialAbility;
-  final int unlockLevel;
-  final int unlockCost;
   final String description;
 
-  // ---------------------------------------------------------------------------
-  // Preset aircraft definitions
-  // ---------------------------------------------------------------------------
-
-  static const AircraftData interceptor = AircraftData(
-    id: 'interceptor',
-    name: 'F-16 Fighting Falcon',
-    speed: GameConfig.interceptorSpeed,
-    health: GameConfig.interceptorHealth,
-    weapons: [WeaponData.heatMissile, WeaponData.machineGun],
-    specialAbility: SpecialAbility.barrelRoll,
-    unlockLevel: 0,
-    unlockCost: 0,
-    description: 'Chasseur multirôle léger. Tonneau d\'esquive des missiles ennemis.',
+  // The single aircraft type used in the game.
+  static const AircraftData strikeAircraft = AircraftData(
+    id: 'strike_aircraft',
+    name: 'Desert Strike',
+    speed: GameConfig.aircraftSpeed,
+    health: GameConfig.aircraftHealth,
+    description: 'Avion d\'attaque au sol multi-rôle.',
   );
 
-  static const AircraftData heavyBomber = AircraftData(
-    id: 'heavy_bomber',
-    name: 'B-52 Stratofortress',
-    speed: GameConfig.heavyBomberSpeed,
-    health: GameConfig.heavyBomberHealth,
-    weapons: [WeaponData.carpetBomb],
-    specialAbility: SpecialAbility.armor,
-    unlockLevel: GameConfig.heavyBomberUnlockLevel,
-    unlockCost: 500,
-    description: 'Bombardier stratégique blindé. Les frappes en tapis rasent les positions au sol.',
-  );
-
-  static const AircraftData stealthX26 = AircraftData(
-    id: 'stealth_x26',
-    name: 'B-21 Raider',
-    speed: GameConfig.stealthSpeed,
-    health: GameConfig.stealthHealth,
-    weapons: [WeaponData.penetratorBomb, WeaponData.machineGun],
-    specialAbility: SpecialAbility.cloak,
-    unlockLevel: GameConfig.stealthUnlockLevel,
-    unlockCost: 1500,
-    description: 'Seul appareil capable de détruire les Sites Fortifiés. Furtivité radar active.',
-  );
-
-  static const List<AircraftData> all = [interceptor, heavyBomber, stealthX26];
+  /// Weapons available per aircraft.
+  static List<WeaponData> get weapons => [
+        WeaponData.canon,
+        WeaponData.guidedMissile,
+        WeaponData.classicBomb,
+      ];
 }

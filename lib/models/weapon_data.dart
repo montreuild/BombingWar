@@ -1,6 +1,6 @@
 import '../config/game_config.dart';
 
-enum WeaponType { bullet, missile, bomb, penetratorBomb }
+enum WeaponType { canon, missile, bomb, gbu57 }
 
 class WeaponData {
   const WeaponData({
@@ -10,6 +10,7 @@ class WeaponData {
     required this.cooldown,
     required this.type,
     this.explosionRadius = 0.0,
+    this.maxAmmo = 0,
   });
 
   final String name;
@@ -18,42 +19,49 @@ class WeaponData {
   final double cooldown;
   final WeaponType type;
   final double explosionRadius;
+  final int maxAmmo;
 
   // ---------------------------------------------------------------------------
   // Preset weapon definitions
   // ---------------------------------------------------------------------------
 
-  static const WeaponData machineGun = WeaponData(
-    name: 'M61 Vulcan',
-    damage: GameConfig.bulletDamage,
-    range: GameConfig.bulletRange,
-    cooldown: GameConfig.bulletCooldown,
-    type: WeaponType.bullet,
+  static const WeaponData canon = WeaponData(
+    name: 'Canon 20mm',
+    damage: GameConfig.canonDamage,
+    range: GameConfig.canonRange,
+    cooldown: GameConfig.canonCooldown,
+    type: WeaponType.canon,
+    maxAmmo: GameConfig.canonAmmoPerPlane,
   );
 
-  static const WeaponData heatMissile = WeaponData(
-    name: 'AIM-9X Sidewinder',
+  static const WeaponData guidedMissile = WeaponData(
+    name: 'Missile Guidé',
     damage: GameConfig.missileDamage,
     range: GameConfig.missileRange,
     cooldown: GameConfig.missileCooldown,
     type: WeaponType.missile,
+    maxAmmo: GameConfig.missileAmmoPerPlane,
   );
 
-  static const WeaponData carpetBomb = WeaponData(
-    name: 'Mk.82 JDAM',
+  static const WeaponData classicBomb = WeaponData(
+    name: 'Bombe Classique',
     damage: GameConfig.bombDamage,
     range: GameConfig.worldHeight,
     cooldown: GameConfig.bombCooldown,
     type: WeaponType.bomb,
     explosionRadius: GameConfig.bombExplosionRadius,
+    maxAmmo: GameConfig.bombAmmoPerPlane,
   );
 
-  static const WeaponData penetratorBomb = WeaponData(
-    name: 'GBU-28 Bunker Buster',
-    damage: GameConfig.penetratorDamage,
+  static const WeaponData gbu57 = WeaponData(
+    name: 'GBU-57',
+    damage: GameConfig.gbuDamage,
     range: GameConfig.worldHeight,
-    cooldown: GameConfig.penetratorCooldown,
-    type: WeaponType.penetratorBomb,
-    explosionRadius: GameConfig.penetratorExplosionRadius,
+    cooldown: 0.0, // single use
+    type: WeaponType.gbu57,
+    explosionRadius: GameConfig.gbuExplosionRadius,
+    maxAmmo: GameConfig.gbuPerMission,
   );
+
+  static const List<WeaponData> allWeapons = [canon, guidedMissile, classicBomb, gbu57];
 }
