@@ -115,8 +115,8 @@ class _TouchOverlay extends StatelessWidget {
 
   Vector2 _toWorld(Offset local, BuildContext context) {
     final size = MediaQuery.of(context).size;
-    final scaleX = 400.0 / size.width;
-    final scaleY = 800.0 / size.height;
+    final scaleX = 800.0 / size.width;
+    final scaleY = 400.0 / size.height;
     return Vector2(local.dx * scaleX, local.dy * scaleY);
   }
 }
