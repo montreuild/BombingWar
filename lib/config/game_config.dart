@@ -62,6 +62,7 @@ class GameConfig {
   static const double missileRange = 500.0;
   static const double missileSize = 12.0;
   static const double missileHomingStrength = 200.0;
+  static const double missileExplosionRadius = 30.0;
 
   // Classic Bombs
   static const double bombSpeed = 180.0;

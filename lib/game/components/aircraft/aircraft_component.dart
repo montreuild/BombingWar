@@ -208,9 +208,11 @@ class AircraftComponent extends PositionComponent {
 
   void _clampToWorld() {
     const halfSize = GameConfig.aircraftSize / 2;
-    position.x = position.x.clamp(halfSize, GameConfig.worldWidth - halfSize);
-    position.y =
-        position.y.clamp(halfSize, GameConfig.groundLevel - halfSize);
+    position.x = position.x.clamp(halfSize, game.missionDistance - halfSize);
+    // Allow the aircraft to reach groundLevel so the crash check fires.
+    // Using worldHeight - halfSize keeps the centre within world bounds while
+    // still letting position.y exceed groundLevel (280) on the way down.
+    position.y = position.y.clamp(halfSize, GameConfig.worldHeight - halfSize);
   }
 
   // ---------------------------------------------------------------------------
