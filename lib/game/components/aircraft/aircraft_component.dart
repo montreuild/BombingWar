@@ -207,7 +207,7 @@ class AircraftComponent extends PositionComponent {
   }
 
   void _clampToWorld() {
-    final halfSize = GameConfig.aircraftSize / 2;
+    const halfSize = GameConfig.aircraftSize / 2;
     position.x = position.x.clamp(halfSize, GameConfig.worldWidth - halfSize);
     position.y =
         position.y.clamp(halfSize, GameConfig.groundLevel - halfSize);

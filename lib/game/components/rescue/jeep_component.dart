@@ -2,7 +2,6 @@ import 'package:flame/components.dart';
 import 'package:flutter/material.dart';
 import '../../../config/game_config.dart';
 import '../../bombing_war_game.dart';
-import 'pilot_component.dart';
 
 /// Enemy jeep that hunts ejected pilot.
 /// Collision jeep × pilot → kidnapping → Game Over immédiat.

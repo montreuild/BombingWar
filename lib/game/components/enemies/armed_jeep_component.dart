@@ -11,11 +11,9 @@ import '../projectiles/bullet_component.dart';
 /// Armed Jeep — mobile, turret ±45°, hunts pilot when ejected.
 class ArmedJeepComponent extends EnemyComponent {
   ArmedJeepComponent({
-    required BombingWarGame game,
-    required Vector2 position,
+    required super.game,
+    required super.position,
   }) : super(
-          game: game,
-          position: position,
           enemyData: EnemyData.jeep,
         );
 

@@ -137,7 +137,7 @@ class TerrainComponent extends Component {
   }
 
   void _drawSky(Canvas canvas) {
-    final r = Rect.fromLTWH(0, 0, GameConfig.worldWidth, GameConfig.groundLevel);
+    final r = const Rect.fromLTWH(0, 0, GameConfig.worldWidth, GameConfig.groundLevel);
     canvas.drawRect(
       r,
       Paint()
@@ -230,14 +230,14 @@ class TerrainComponent extends Component {
     path.close();
 
     // Draw with sand gradient
-    final r = Rect.fromLTWH(0, GameConfig.groundLevel - 30, GameConfig.worldWidth, 80);
+    final r = const Rect.fromLTWH(0, GameConfig.groundLevel - 30, GameConfig.worldWidth, 80);
     canvas.drawPath(
       path,
       Paint()
-        ..shader = LinearGradient(
+        ..shader = const LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: const [_sandSurface, _sandMid],
+          colors: [_sandSurface, _sandMid],
         ).createShader(r),
     );
 
@@ -261,7 +261,7 @@ class TerrainComponent extends Component {
   }
 
   void _drawUndergroundL1(Canvas canvas) {
-    final r = Rect.fromLTWH(
+    final r = const Rect.fromLTWH(
       0,
       GameConfig.undergroundL1Top,
       GameConfig.worldWidth,
@@ -270,17 +270,17 @@ class TerrainComponent extends Component {
     canvas.drawRect(
       r,
       Paint()
-        ..shader = LinearGradient(
+        ..shader = const LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: const [_sandMid, _rockL1],
+          colors: [_sandMid, _rockL1],
         ).createShader(r),
     );
 
     // Strata line separating L1 from L2
     canvas.drawLine(
-      Offset(0, GameConfig.undergroundL1Bottom),
-      Offset(GameConfig.worldWidth, GameConfig.undergroundL1Bottom),
+      const Offset(0, GameConfig.undergroundL1Bottom),
+      const Offset(GameConfig.worldWidth, GameConfig.undergroundL1Bottom),
       Paint()
         ..color = Colors.black.withValues(alpha: 0.3)
         ..strokeWidth = 2,
@@ -288,7 +288,7 @@ class TerrainComponent extends Component {
   }
 
   void _drawUndergroundL2(Canvas canvas) {
-    final r = Rect.fromLTWH(
+    final r = const Rect.fromLTWH(
       0,
       GameConfig.undergroundL2Top,
       GameConfig.worldWidth,
@@ -297,10 +297,10 @@ class TerrainComponent extends Component {
     canvas.drawRect(
       r,
       Paint()
-        ..shader = LinearGradient(
+        ..shader = const LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: const [_rockL1, _rockL2],
+          colors: [_rockL1, _rockL2],
         ).createShader(r),
     );
   }

@@ -64,7 +64,7 @@ class _LevelCompleteScreenState extends State<LevelCompleteScreen>
               : r.rating == 'GOOD'
                   ? const Color(0xFF44FF88)
                   : Colors.red),
-      _ReportLine('', '', Colors.transparent), // spacer
+      const _ReportLine('', '', Colors.transparent), // spacer
       _ReportLine('Ennemis éliminés', '${r.enemiesKilled} / ${r.totalEnemies}',
           Colors.white),
       _ReportLine('Bunkers détruits', '${r.bunkersDestroyed}', Colors.white70),
@@ -73,21 +73,21 @@ class _LevelCompleteScreenState extends State<LevelCompleteScreen>
       _ReportLine('Usines détruites', '${r.factoriesDestroyed}', Colors.white70),
       _ReportLine(
           'Cibles bonus', '${r.bonusTargetsDestroyed}', Colors.amber),
-      _ReportLine('', '', Colors.transparent), // spacer
+      const _ReportLine('', '', Colors.transparent), // spacer
       _ReportLine('Drones interceptés', '${r.dronesIntercepted}',
           const Color(0xFF44CCFF)),
       _ReportLine('Drones échappés', '${r.dronesEscaped}', Colors.orange),
       _ReportLine('Lanceurs détruits', '${r.droneLaunchersDestroyed}',
           const Color(0xFF44CCFF)),
-      _ReportLine('', '', Colors.transparent), // spacer
+      const _ReportLine('', '', Colors.transparent), // spacer
       _ReportLine('Pilotes éjectés', '${r.pilotsEjected}', Colors.white70),
       _ReportLine('Pilotes sauvés', '${r.pilotsSurvived}',
           const Color(0xFF44FF88)),
       _ReportLine('Avions perdus', '${r.planesLost}', Colors.red.shade300),
-      _ReportLine('', '', Colors.transparent), // spacer
+      const _ReportLine('', '', Colors.transparent), // spacer
       _ReportLine('Gains bruts', '\$${r.dollarGross}', const Color(0xFF44FF44)),
       _ReportLine('Pénalités', '\$${r.dollarPenalties}', Colors.red),
-      _ReportLine('', '', Colors.transparent), // spacer
+      const _ReportLine('', '', Colors.transparent), // spacer
       _ReportLine(
           'SCORE FINAL', '\$${r.dollarNet}', const Color(0xFFFFCC44)),
     ]);
