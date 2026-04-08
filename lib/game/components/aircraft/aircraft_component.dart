@@ -3,73 +3,108 @@ import 'package:flame/components.dart';
 import 'package:flutter/material.dart';
 
 import '../../../config/game_config.dart';
-import '../../../models/aircraft_data.dart';
 import '../../../models/weapon_data.dart';
 import '../../bombing_war_game.dart';
 import '../projectiles/bomb_component.dart';
 import '../projectiles/bullet_component.dart';
 import '../projectiles/missile_component.dart';
 
-/// Base class for all player-controlled aircraft.
-abstract class AircraftComponent extends PositionComponent {
+/// Single aircraft type for Desert Strike Mobile.
+/// 8-direction movement via joystick, velocity + drag, no gravity.
+/// Ammo: 200 canon, 6 missiles, 6 bombs. GBU-57 managed by game.
+class AircraftComponent extends PositionComponent {
   AircraftComponent({
-    required this.data,
     required this.game,
   }) : super(size: Vector2.all(GameConfig.aircraftSize), anchor: Anchor.center);
 
-  final AircraftData data;
   final BombingWarGame game;
 
-  late double _health;
-  late double _maxHealth;
+  double _health = GameConfig.aircraftHealth;
+  final double _maxHealth = GameConfig.aircraftHealth;
+
+  // Velocity-based movement
+  Vector2 _velocity = Vector2.zero();
+
+  // Per-plane ammo (reset on switch)
+  int _canonAmmo = GameConfig.canonAmmoPerPlane;
+  int _missileAmmo = GameConfig.missileAmmoPerPlane;
+  int _bombAmmo = GameConfig.bombAmmoPerPlane;
+
+  // Weapon cycling: 0=canon, 1=missile, 2=bomb
   int _currentWeaponIndex = 0;
   double _fireCooldown = 0.0;
-  double _specialCooldown = 0.0;
-  double _specialTimer = 0.0;
-  bool _specialActive = false;
   bool _isInvincible = false;
 
-  int _ammoRemaining = GameConfig.maxAmmoPerAircraft;
-
+  // Accessors
   double get health => _health;
   double get maxHealth => _maxHealth;
-  int get ammoRemaining => _ammoRemaining;
+  int get canonAmmo => _canonAmmo;
+  int get missileAmmo => _missileAmmo;
+  int get bombAmmo => _bombAmmo;
+  int get totalRemainingAmmo => _canonAmmo + _missileAmmo + _bombAmmo;
   double get hitRadius => GameConfig.aircraftSize * 0.4;
   bool get isAlive => _health > 0;
   bool get isInvincible => _isInvincible;
 
-  /// Overridden by StealthComponent to expose cloaked state to game systems.
-  bool get isCloaked => false;
+  static const List<WeaponData> _weapons = [
+    WeaponData.canon,
+    WeaponData.guidedMissile,
+    WeaponData.classicBomb,
+  ];
 
-  WeaponData get currentWeapon => data.weapons[_currentWeaponIndex];
-  bool get specialReady => _specialCooldown <= 0;
+  WeaponData get currentWeapon => _weapons[_currentWeaponIndex];
 
-  // Template-method hooks for subclasses
-  Color get bodyColor;
-  Color get wingColor;
-  double get specialDuration;
-  void onSpecialStart();
-  void onSpecialEnd() {}
+  String get currentWeaponName {
+    switch (_currentWeaponIndex) {
+      case 0:
+        return 'Canon ($_canonAmmo)';
+      case 1:
+        return 'Missiles ($_missileAmmo)';
+      case 2:
+        return 'Bombes ($_bombAmmo)';
+      default:
+        return '';
+    }
+  }
 
-  /// Override in HeavyBomber to apply armor reduction.
-  double applyDamageReduction(double amount) => amount;
-
-  @override
-  Future<void> onLoad() async {
-    await super.onLoad();
-    _health = data.health;
-    _maxHealth = data.health;
+  int get currentAmmo {
+    switch (_currentWeaponIndex) {
+      case 0:
+        return _canonAmmo;
+      case 1:
+        return _missileAmmo;
+      case 2:
+        return _bombAmmo;
+      default:
+        return 0;
+    }
   }
 
   @override
   void update(double dt) {
     super.update(dt);
+
+    // Apply drag
+    _velocity *= GameConfig.aircraftDrag;
+
+    // Move
+    position += _velocity * dt;
+
+    // Cooldown
     if (_fireCooldown > 0) _fireCooldown -= dt;
-    if (_specialCooldown > 0) _specialCooldown -= dt;
-    if (_specialActive) {
-      _specialTimer -= dt;
-      if (_specialTimer <= 0) _endSpecial();
+
+    // Ground collision check
+    if (position.y >= GameConfig.groundLevel) {
+      // Crash into ground
+      _health = 0;
+      game.spawnExplosion(position, radius: 50.0);
+      final wasEjected =
+          math.Random().nextDouble() < GameConfig.pilotEjectProbability;
+      game.onAircraftDestroyed(position.clone(), wasEjected);
+      removeFromParent();
+      return;
     }
+
     _clampToWorld();
   }
 
@@ -81,13 +116,13 @@ abstract class AircraftComponent extends PositionComponent {
   }
 
   void _renderBody(Canvas canvas) {
-    final alpha = isCloaked ? 0.35 : 1.0;
-
-    // Body (Fuselage) - Tapered for aero look
+    // Body (Fuselage)
     final bodyPath = Path()
       ..moveTo(size.x * 0.1, size.y * 0.5) // Tail
-      ..quadraticBezierTo(size.x * 0.5, size.y * 0.2, size.x * 0.9, size.y * 0.5) // Top
-      ..quadraticBezierTo(size.x * 0.5, size.y * 0.8, size.x * 0.1, size.y * 0.5) // Bottom
+      ..quadraticBezierTo(
+          size.x * 0.5, size.y * 0.2, size.x * 0.9, size.y * 0.5)
+      ..quadraticBezierTo(
+          size.x * 0.5, size.y * 0.8, size.x * 0.1, size.y * 0.5)
       ..close();
 
     final bodyPaint = Paint()
@@ -95,14 +130,13 @@ abstract class AircraftComponent extends PositionComponent {
         begin: Alignment.topCenter,
         end: Alignment.bottomCenter,
         colors: [
-          bodyColor.withValues(alpha: alpha),
-          bodyColor.withValues(alpha: 0.6 * alpha),
+          Colors.grey.shade600,
+          Colors.grey.shade800,
         ],
       ).createShader(Rect.fromLTWH(0, 0, size.x, size.y));
-
     canvas.drawPath(bodyPath, bodyPaint);
 
-    // Tail fin (Vertical stabilizer)
+    // Tail fin
     final tailPath = Path()
       ..moveTo(size.x * 0.15, size.y * 0.4)
       ..lineTo(size.x * 0.05, size.y * 0.15)
@@ -110,8 +144,8 @@ abstract class AircraftComponent extends PositionComponent {
       ..close();
     canvas.drawPath(tailPath, bodyPaint);
 
-    // Wings (Side-view perspective)
-    final wingPaint = Paint()..color = wingColor.withValues(alpha: alpha);
+    // Wings
+    final wingPaint = Paint()..color = Colors.grey.shade500;
     final wingPath = Path()
       ..moveTo(size.x * 0.35, size.y * 0.5)
       ..lineTo(size.x * 0.55, size.y * 0.75)
@@ -121,7 +155,7 @@ abstract class AircraftComponent extends PositionComponent {
 
     // Cockpit Glass
     final cockpitPaint = Paint()
-      ..color = Colors.lightBlueAccent.withValues(alpha: 0.7 * alpha)
+      ..color = Colors.lightBlueAccent.withValues(alpha: 0.7)
       ..style = PaintingStyle.fill;
     canvas.drawOval(
       Rect.fromLTWH(size.x * 0.6, size.y * 0.35, size.x * 0.2, size.y * 0.12),
@@ -130,7 +164,7 @@ abstract class AircraftComponent extends PositionComponent {
 
     // Engine Exhaust Glow
     final enginePaint = Paint()
-      ..color = Colors.orange.withValues(alpha: 0.8 * alpha)
+      ..color = Colors.orange.withValues(alpha: 0.8)
       ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 3);
     canvas.drawCircle(Offset(size.x * 0.1, size.y * 0.5), 3, enginePaint);
   }
@@ -160,21 +194,23 @@ abstract class AircraftComponent extends PositionComponent {
   }
 
   // ---------------------------------------------------------------------------
-  // Movement
+  // Movement (8 directions via joystick, velocity + drag)
   // ---------------------------------------------------------------------------
 
   void applyMovement(Vector2 direction, double dt) {
     if (direction.isZero()) return;
-    position += direction * data.speed * dt;
+    _velocity += direction * GameConfig.aircraftSpeed * dt;
+    // Clamp max velocity
+    if (_velocity.length > GameConfig.aircraftSpeed) {
+      _velocity = _velocity.normalized() * GameConfig.aircraftSpeed;
+    }
   }
 
   void _clampToWorld() {
-    position.x = position.x.clamp(
-        GameConfig.aircraftSize / 2,
-        GameConfig.worldWidth - GameConfig.aircraftSize / 2);
-    position.y = position.y.clamp(
-        GameConfig.aircraftSize / 2,
-        GameConfig.worldHeight - GameConfig.aircraftSize / 2);
+    final halfSize = GameConfig.aircraftSize / 2;
+    position.x = position.x.clamp(halfSize, GameConfig.worldWidth - halfSize);
+    position.y =
+        position.y.clamp(halfSize, GameConfig.groundLevel - halfSize);
   }
 
   // ---------------------------------------------------------------------------
@@ -182,35 +218,53 @@ abstract class AircraftComponent extends PositionComponent {
   // ---------------------------------------------------------------------------
 
   void cycleWeapon() {
-    if (data.weapons.length <= 1) return;
-    _currentWeaponIndex = (_currentWeaponIndex + 1) % data.weapons.length;
-    game.hud?.updateWeapon(currentWeapon.name);
+    _currentWeaponIndex = (_currentWeaponIndex + 1) % _weapons.length;
+    game.hud?.updateWeapon(currentWeaponName);
+  }
+
+  /// Select a specific weapon type. Used by HUD buttons.
+  void selectWeapon(int index) {
+    if (index >= 0 && index < _weapons.length) {
+      _currentWeaponIndex = index;
+      game.hud?.updateWeapon(currentWeaponName);
+    }
   }
 
   void fireWeapon() {
-    if (_fireCooldown > 0 || _ammoRemaining <= 0) return;
-    
+    if (_fireCooldown > 0) return;
+    if (currentAmmo <= 0) return;
+
     _fireCooldown = currentWeapon.cooldown;
-    _ammoRemaining--;
+    _decrementAmmo();
     _spawnProjectile(currentWeapon);
     game.audioManager.playShoot().catchError((_) {});
+  }
 
-    if (_ammoRemaining <= 0) {
-      game.onAircraftOutOfAmmo();
+  void _decrementAmmo() {
+    switch (_currentWeaponIndex) {
+      case 0:
+        _canonAmmo--;
+        break;
+      case 1:
+        _missileAmmo--;
+        break;
+      case 2:
+        _bombAmmo--;
+        break;
     }
   }
 
   void _spawnProjectile(WeaponData weapon) {
-    // Projectiles spawn from the front/bottom of the plane
     final spawnPos = position + Vector2(size.x * 0.4, size.y * 0.2);
     switch (weapon.type) {
-      case WeaponType.bullet:
+      case WeaponType.canon:
         game.add(BulletComponent(
           position: spawnPos,
-          direction: Vector2(1, 0), // Side-view: fire right
+          direction: Vector2(1, 0),
           damage: weapon.damage,
           isPlayerProjectile: true,
         ));
+        break;
       case WeaponType.missile:
         game.add(MissileComponent(
           position: spawnPos,
@@ -218,6 +272,7 @@ abstract class AircraftComponent extends PositionComponent {
           isPlayerProjectile: true,
           game: game,
         ));
+        break;
       case WeaponType.bomb:
         game.add(BombComponent(
           position: spawnPos,
@@ -226,14 +281,10 @@ abstract class AircraftComponent extends PositionComponent {
           isPlayerProjectile: true,
           isPenetrator: false,
         ));
-      case WeaponType.penetratorBomb:
-        game.add(BombComponent(
-          position: spawnPos,
-          damage: weapon.damage,
-          explosionRadius: weapon.explosionRadius,
-          isPlayerProjectile: true,
-          isPenetrator: true,
-        ));
+        break;
+      case WeaponType.gbu57:
+        // GBU-57 is handled via cutscene, not direct fire
+        break;
     }
   }
 
@@ -243,39 +294,20 @@ abstract class AircraftComponent extends PositionComponent {
 
   void takeDamage(double amount) {
     if (_isInvincible) return;
-    final reduced = applyDamageReduction(amount);
-    _health -= reduced;
+    _health -= amount;
     if (_health <= 0) {
       _health = 0;
       game.spawnExplosion(position, radius: 50.0);
-      
-      // 50% chance of ejection
-      final wasEjected = math.Random().nextBool();
+
+      final wasEjected =
+          math.Random().nextDouble() < GameConfig.pilotEjectProbability;
       game.onAircraftDestroyed(position.clone(), wasEjected);
 
       removeFromParent();
     }
   }
 
-  // ---------------------------------------------------------------------------
-  // Special ability
-  // ---------------------------------------------------------------------------
-
-  void activateSpecial() {
-    if (_specialCooldown > 0) return;
-    _specialCooldown = GameConfig.specialCooldown;
-    _specialTimer = specialDuration;
-    _specialActive = true;
-    onSpecialStart();
-    game.audioManager.playSpecial().catchError((_) {});
-  }
-
-  void _endSpecial() {
-    _specialActive = false;
-    onSpecialEnd();
-  }
-
-  /// Grant brief invincibility (used by barrel roll).
+  /// Grant brief invincibility.
   void setInvincible(double duration) {
     _isInvincible = true;
     Future.delayed(
