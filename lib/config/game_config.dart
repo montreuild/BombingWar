@@ -230,6 +230,35 @@ class GameConfig {
   static const int reinforcedBunkerUnlockLevel = 10;
 
   // ---------------------------------------------------------------------------
+  // Threat System
+  // ---------------------------------------------------------------------------
+  static const double stealthThreatMultiplier = 0.3; // Stealth reduces threat fill rate by 70%
+  static const double radarTowerThreatReduction = 2.0; // Each destroyed radar reduces fill by 2%/s
+  static const double threatFillRate = 5.0; // Threat fills at 5%/s
+  static const double threatDecayRate = 1.0; // Threat decays at 1%/s when radars are destroyed
+  static const double threatBarrageThreshold = 100.0; // Barrage triggers at 100%
+
+  // Barrage
+  static const int barrageMissileCount = 5;
+
+  // ---------------------------------------------------------------------------
+  // Sky
+  // ---------------------------------------------------------------------------
+  static const double skyHeight = groundLevel; // Usable sky space (y = 0 to groundLevel)
+
+  // ---------------------------------------------------------------------------
+  // Penetrator bomb (Stealth X-26)
+  // ---------------------------------------------------------------------------
+  static const double penetratorSize = 16.0;
+
+  // ---------------------------------------------------------------------------
+  // Bullet (canon alias)
+  // ---------------------------------------------------------------------------
+  static const double bulletSize = canonSize;
+  static const double bulletRange = canonRange;
+  static const double bulletSpeed = canonSpeed;
+
+  // ---------------------------------------------------------------------------
   // HUD
   // ---------------------------------------------------------------------------
   static const double joystickRadius = 60.0;
